@@ -4,47 +4,84 @@ import hashlib
 import logging
 import subprocess
 import uuid
+import argparse
+import json
+import re
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from ai_engine import diagnose_and_fix
 from validator import validate_code
 
-# Setup terminal output
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-LOG_FILE = "logs/server.log"
-TARGET_FILE = "app.py"
 MAX_ATTEMPTS = 2
 
-def git_commit_fix():
+def get_config(project_root):
+    config_path = os.path.join(project_root, ".self-healing", "config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            logging.error(f"[CONFIG] Error reading config: {e}")
+    return {}
+
+def extract_target_file(traceback_text, project_root):
+    # Find all file paths in the traceback
+    matches = re.findall(r'File "([^"]+)"', traceback_text)
+    for match in reversed(matches):
+        # Normalize paths
+        abs_match = os.path.abspath(match)
+        abs_root = os.path.abspath(project_root)
+        
+        # Check if the file is inside the project root
+        try:
+            if os.path.commonpath([abs_match, abs_root]) == abs_root:
+                if os.path.exists(abs_match):
+                    return abs_match
+        except ValueError:
+            pass # Paths are on different drives
+    return None
+
+def git_commit_fix(project_root, target_file):
+    # Check if .git exists in project root
+    if not os.path.exists(os.path.join(project_root, ".git")):
+        print("[GIT] No Git repository detected")
+        print("[HEALER] Git-based repair disabled")
+        return
+        
+    print("[GIT] Repository detected")
+    
     try:
         git_config = ["-c", "user.name=AI-Healer", "-c", "user.email=ai@healer.local"]
-        
-        # Init repo if not exists
-        if not os.path.exists(".git"):
-            subprocess.run(["git", "init"], check=True, capture_output=True)
-            subprocess.run(["git", "add", "."], check=True, capture_output=True)
-            subprocess.run(["git", *git_config, "commit", "-m", "Initial commit"], check=True, capture_output=True)
-            
         branch_name = f"ai-fix-{uuid.uuid4().hex[:6]}"
-        subprocess.run(["git", "checkout", "-b", branch_name], check=True, capture_output=True)
-        subprocess.run(["git", "add", TARGET_FILE], check=True, capture_output=True)
-        subprocess.run(["git", *git_config, "commit", "-m", "AI Auto-Healer: Fixed crash in app.py"], check=True, capture_output=True)
+        subprocess.run(["git", "checkout", "-b", branch_name], cwd=project_root, check=True, capture_output=True)
+        print("[GIT] Creating AI repair branch")
         
-        print(f"[GIT] Patch committed successfully to branch: {branch_name}")
+        # Use relative path for git add
+        rel_target = os.path.relpath(target_file, project_root)
+        subprocess.run(["git", "add", rel_target], cwd=project_root, check=True, capture_output=True)
+        subprocess.run(["git", *git_config, "commit", "-m", f"AI Auto-Healer: Fixed crash in {rel_target}"], cwd=project_root, check=True, capture_output=True)
+        
+        print("[GIT] Commit created")
     except Exception as e:
         print(f"[GIT] Warning: Local git commit failed: {e}")
 
+
 class LogWatcherHandler(FileSystemEventHandler):
-    def __init__(self):
+    def __init__(self, project_root, log_file):
         super().__init__()
+        self.project_root = project_root
+        self.log_file = log_file
         self.last_hash = None
         self.attempts = 0
         self.processing = False
         
     def on_modified(self, event):
         # We only care about the server log
-        if not event.src_path.replace('\\', '/').endswith(LOG_FILE):
+        norm_src = event.src_path.replace('\\', '/')
+        norm_log = self.log_file.replace('\\', '/')
+        if not norm_src.endswith(norm_log):
             return
             
         if self.processing:
@@ -57,23 +94,21 @@ class LogWatcherHandler(FileSystemEventHandler):
             self.processing = False
 
     def handle_log_update(self):
-        if not os.path.exists(LOG_FILE):
+        log_path = os.path.join(self.project_root, self.log_file)
+        if not os.path.exists(log_path):
             return
             
-        with open(LOG_FILE, 'r') as f:
+        with open(log_path, 'r') as f:
             content = f.read()
             
         if "Traceback" not in content:
             return
             
-        # Extract the latest traceback
         tracebacks = content.split("Traceback (most recent call last):")
         if len(tracebacks) <= 1:
             return
             
         latest_tb = "Traceback (most recent call last):" + tracebacks[-1]
-        
-        # Hash the traceback to avoid duplicate processing
         tb_hash = hashlib.md5(latest_tb.encode('utf-8')).hexdigest()
         
         if tb_hash == self.last_hash:
@@ -89,36 +124,37 @@ class LogWatcherHandler(FileSystemEventHandler):
         print("[WATCHER] Error detected")
         print("[AI] Analyzing failure...")
         
+        target_file = extract_target_file(latest_tb, self.project_root)
+        if not target_file:
+            print("[SAFETY] Target file outside project root or could not be determined")
+            print("[HEALER] Patch rejected")
+            return
+            
         try:
-            with open(TARGET_FILE, "r") as f:
+            with open(target_file, "r") as f:
                 source_code = f.read()
                 
             result = diagnose_and_fix(latest_tb, source_code)
-            print(f"[AI] Root cause identified: {result['diagnosis']}")
-            print("[AI] Patch generated")
+            print("[AI] Diagnosis complete")
             
             fixed_code = result['fixed_code']
             
-            # Validation
+            print("[VALIDATOR] Validating patch...")
             if validate_code(fixed_code):
-                print("[VALIDATOR] Syntax check passed")
-                print("[HEALER] Applying patch")
+                print("[VALIDATOR] PASS")
+                print("[HEALER] Applying patch...")
                 
-                # Backup
-                with open(f"{TARGET_FILE}.bak", "w") as f:
+                with open(f"{target_file}.bak", "w") as f:
                     f.write(source_code)
                     
-                # Apply
-                with open(TARGET_FILE, "w") as f:
+                with open(target_file, "w") as f:
                     f.write(fixed_code)
                     
                 print("[SERVER] Reload triggered")
+                
+                git_commit_fix(self.project_root, target_file)
                 print("[HEALER] Recovery successful")
                 
-                # Commit fix to Git branch
-                git_commit_fix()
-                
-                # Reset attempts since we applied a fix
                 self.attempts = 0
             else:
                 print("[VALIDATOR] PATCH REJECTED")
@@ -130,18 +166,27 @@ class LogWatcherHandler(FileSystemEventHandler):
             else:
                 print(f"[HEALER] Process failed: {e}")
 
-def start_watcher():
-    os.makedirs("logs", exist_ok=True)
-    if not os.path.exists(LOG_FILE):
-        open(LOG_FILE, 'a').close()
+def start_watcher(project_root):
+    print("[WATCHER] Project detected")
+    config = get_config(project_root)
+    log_file = config.get("log_file", "logs/server.log")
+    
+    log_path = os.path.join(project_root, log_file)
+    log_dir = os.path.dirname(log_path)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    if not os.path.exists(log_path):
+        open(log_path, 'a').close()
         
-    event_handler = LogWatcherHandler()
+    event_handler = LogWatcherHandler(project_root, log_file)
     observer = Observer()
-    # Watch the logs directory
-    observer.schedule(event_handler, path="logs", recursive=False)
+    
+    # Watch the log directory specifically
+    watch_dir = log_dir if log_dir else project_root
+    observer.schedule(event_handler, path=watch_dir, recursive=False)
     observer.start()
     
-    print("[WATCHER] Started watching logs/server.log")
+    print("[WATCHER] Log monitoring started")
     try:
         while True:
             time.sleep(1)
@@ -150,4 +195,8 @@ def start_watcher():
     observer.join()
 
 if __name__ == "__main__":
-    start_watcher()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project", default=".", help="Project root path")
+    args = parser.parse_args()
+    
+    start_watcher(os.path.abspath(args.project))
