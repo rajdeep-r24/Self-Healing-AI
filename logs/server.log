@@ -1,0 +1,133 @@
+2026-08-11 15:33:46,400 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:33:47,304 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:33:47,668 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:33:47,855 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:33:48,015 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:33:48,169 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:33:48,575 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:07,006 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:07,271 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:07,520 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:07,725 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:07,946 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:08,179 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:34:08,530 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:36:27,361 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:36:28,198 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:36:28,643 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:36:28,956 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-11 15:36:29,278 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['user_name']}!"
+                         ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
