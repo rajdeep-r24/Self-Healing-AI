@@ -11,6 +11,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from ai_engine import diagnose_and_fix
 from validator import validate_code
+from git_module import local_commit_fix, github_push_and_pr
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -42,30 +43,6 @@ def extract_target_file(traceback_text, project_root):
         except ValueError:
             pass # Paths are on different drives
     return None
-
-def git_commit_fix(project_root, target_file):
-    # Check if .git exists in project root
-    if not os.path.exists(os.path.join(project_root, ".git")):
-        print("[GIT] No Git repository detected")
-        print("[HEALER] Git-based repair disabled")
-        return
-        
-    print("[GIT] Repository detected")
-    
-    try:
-        git_config = ["-c", "user.name=AI-Healer", "-c", "user.email=ai@healer.local"]
-        branch_name = f"ai-fix-{uuid.uuid4().hex[:6]}"
-        subprocess.run(["git", "checkout", "-b", branch_name], cwd=project_root, check=True, capture_output=True)
-        print("[GIT] Creating AI repair branch")
-        
-        # Use relative path for git add
-        rel_target = os.path.relpath(target_file, project_root)
-        subprocess.run(["git", "add", rel_target], cwd=project_root, check=True, capture_output=True)
-        subprocess.run(["git", *git_config, "commit", "-m", f"AI Auto-Healer: Fixed crash in {rel_target}"], cwd=project_root, check=True, capture_output=True)
-        
-        print("[GIT] Commit created")
-    except Exception as e:
-        print(f"[GIT] Warning: Local git commit failed: {e}")
 
 
 class LogWatcherHandler(FileSystemEventHandler):
@@ -152,7 +129,10 @@ class LogWatcherHandler(FileSystemEventHandler):
                     
                 print("[SERVER] Reload triggered")
                 
-                git_commit_fix(self.project_root, target_file)
+                branch_name = local_commit_fix(self.project_root, target_file)
+                if branch_name:
+                    github_push_and_pr(self.project_root, branch_name, target_file, result['explanation'])
+                    
                 print("[HEALER] Recovery successful")
                 
                 self.attempts = 0
