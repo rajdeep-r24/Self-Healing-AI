@@ -23,7 +23,7 @@ async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
         # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
-        greeting = f"Hello, {user_data['username']}!"
+        greeting = f"Hello, {user_data['user_name']}!"
         return {"message": greeting}
     except Exception as e:
         exc_type, exc_value, exc_tb = sys.exc_info()
@@ -31,4 +31,4 @@ async def process_data():
         logger.error(f"Unhandled exception in /process_data:\n{tb_str}")
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
-    
+# Dummy change
