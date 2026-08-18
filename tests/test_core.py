@@ -8,7 +8,7 @@ from ai_engine import diagnose_and_fix
 from validator import validate_code
 from watcher import LogWatcherHandler, extract_target_file
 
-@patch.dict(os.environ, {"GOOGLE_API_KEY": "dummy"})
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy"})
 @patch("ai_engine.genai.Client")
 def test_ai_api_failure(mock_client):
     mock_instance = MagicMock()
@@ -20,7 +20,7 @@ def test_ai_api_failure(mock_client):
         
     assert "AI diagnosis failed safely" in str(exc.value)
 
-@patch.dict(os.environ, {"GOOGLE_API_KEY": "dummy"})
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy"})
 @patch("ai_engine.genai.Client")
 def test_invalid_ai_output(mock_client):
     mock_instance = MagicMock()

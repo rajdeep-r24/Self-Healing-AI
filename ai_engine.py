@@ -20,9 +20,9 @@ def diagnose_and_fix(traceback_text: str, source_code: str) -> dict:
     Sends the traceback and source code to the AI engine to get a fix.
     Returns a dictionary with 'diagnosis' and 'fixed_code'.
     """
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set.")
+        raise ValueError("GEMINI_API_KEY environment variable is not set.")
 
     primary_model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
     fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash")
