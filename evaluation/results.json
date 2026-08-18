@@ -1,0 +1,8 @@
+[
+    {
+        "error_type": "KeyError",
+        "outcome": "AI_SERVICE_UNAVAILABLE",
+        "execution_time": 7.35,
+        "final_code": "import logging\nimport os\nimport sys\nimport traceback\nfrom fastapi import FastAPI\nfrom fastapi.responses import JSONResponse\n\nos.makedirs(\"logs\", exist_ok=True)\n\nlogging.basicConfig(\n    filename=\"logs/server.log\",\n    level=logging.ERROR,\n    format=\"%(asctime)s - %(levelname)s - %(message)s\"\n)\nlogger = logging.getLogger(__name__)\n\napp = FastAPI()\n\n@app.get(\"/process_data\")\nasync def process_data():\n    try:\n        user_data = {\"username\": \"admin\", \"role\": \"superuser\"}\n        greeting = f\"Hello, {user_data['user_name']}!\"\n        return {\"message\": greeting}\n    except Exception as e:\n        exc_type, exc_value, exc_tb = sys.exc_info()\n        tb_str = \"\".join(traceback.format_exception(exc_type, exc_value, exc_tb))\n        logger.error(f\"Unhandled exception in /process_data:\\n{tb_str}\")\n        return JSONResponse(status_code=500, content={\"error\": \"Internal Server Error\"})\n"
+    }
+]

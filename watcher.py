@@ -7,7 +7,8 @@ import uuid
 import argparse
 import json
 import re
-from watchdog.observers import Observer
+import requests
+from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 from ai_engine import diagnose_and_fix
 from validator import validate_code
@@ -37,7 +38,7 @@ def extract_target_file(traceback_text, project_root):
         
         # Check if the file is inside the project root
         try:
-            if os.path.commonpath([abs_match, abs_root]) == abs_root:
+            if os.path.normcase(os.path.commonpath([abs_match, abs_root])) == os.path.normcase(abs_root):
                 if os.path.exists(abs_match):
                     return abs_match
         except ValueError:
@@ -58,6 +59,7 @@ class LogWatcherHandler(FileSystemEventHandler):
         # We only care about the server log
         norm_src = event.src_path.replace('\\', '/')
         norm_log = self.log_file.replace('\\', '/')
+        print(f"[DEBUG WATCHER] Modified: {norm_src} | Target: {norm_log}")
         if not norm_src.endswith(norm_log):
             return
             
@@ -117,7 +119,7 @@ class LogWatcherHandler(FileSystemEventHandler):
             fixed_code = result['fixed_code']
             
             print("[VALIDATOR] Validating patch...")
-            if validate_code(fixed_code):
+            if validate_code(fixed_code, target_file, self.project_root):
                 print("[VALIDATOR] PASS")
                 print("[HEALER] Applying patch...")
                 
@@ -129,9 +131,34 @@ class LogWatcherHandler(FileSystemEventHandler):
                     
                 print("[SERVER] Reload triggered")
                 
+                # Health Check
+                print("[HEALER] Waiting for server reload...")
+                time.sleep(3) # Wait for Uvicorn to reload
+                health_pass = False
+                try:
+                    resp = requests.get("http://127.0.0.1:8000/process_data", timeout=5)
+                    if resp.status_code == 200:
+                        health_pass = True
+                    else:
+                        print(f"[HEALER] Health check returned status code {resp.status_code}")
+                except Exception as e:
+                    print(f"[HEALER] Health check request failed: {e}")
+                    
+                if not health_pass:
+                    print("[HEALER] Health check FAILED. Rolling back...")
+                    with open(target_file, "w") as f:
+                        f.write(source_code)
+                    print("[HEALER] Rollback complete")
+                    return
+
+                print("[HEALER] Health check PASS")
+                
                 branch_name = local_commit_fix(self.project_root, target_file)
                 if branch_name:
-                    github_push_and_pr(self.project_root, branch_name, target_file, result['explanation'])
+                    if os.getenv("EVALUATION_MODE", "false").lower() == "true":
+                        print("[HEALER] EVALUATION_MODE is enabled. Skipping GitHub Push and PR.")
+                    else:
+                        github_push_and_pr(self.project_root, branch_name, target_file, result.get('diagnosis', ''))
                     
                 print("[HEALER] Recovery successful")
                 
@@ -142,6 +169,9 @@ class LogWatcherHandler(FileSystemEventHandler):
         except Exception as e:
             if "AI diagnosis failed safely" in str(e):
                 print("[HEALER] AI diagnosis failed safely")
+                print("[HEALER] No source code modified")
+            elif "AI_SERVICE_UNAVAILABLE" in str(e):
+                print("[HEALER] AI_SERVICE_UNAVAILABLE")
                 print("[HEALER] No source code modified")
             else:
                 print(f"[HEALER] Process failed: {e}")
