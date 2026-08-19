@@ -5,10 +5,7 @@ import traceback
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-# Ensure logs directory exists
 os.makedirs("logs", exist_ok=True)
-
-# Configure logging to write to server.log
 logging.basicConfig(
     filename="logs/server.log",
     level=logging.ERROR,
@@ -22,7 +19,6 @@ app = FastAPI()
 async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
         greeting = f"Hello, {user_data['username']}!"
         return {"message": greeting}
     except Exception as e:
