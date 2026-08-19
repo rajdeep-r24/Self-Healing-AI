@@ -30,5 +30,3 @@ async def process_data():
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         logger.error(f"Unhandled exception in /process_data:\n{tb_str}")
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
-
-    

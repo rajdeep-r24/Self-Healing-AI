@@ -7,11 +7,15 @@ import uuid
 import argparse
 import json
 import re
+import urllib.request
+from urllib.error import URLError, HTTPError
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from ai_engine import diagnose_and_fix
 from validator import validate_code
 from git_module import local_commit_fix, github_push_and_pr
+from bounded_pytest import run_pytest_bounded
+from tui_dashboard import get_dashboard
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -44,6 +48,37 @@ def extract_target_file(traceback_text, project_root):
             pass # Paths are on different drives
     return None
 
+def perform_health_check(health_url, max_wait=8.0, interval=0.5, timeout=1.5, dashboard=None):
+    """
+    Performs short-polling HTTP health check immediately after patch.
+    Polls every 0.5 seconds for up to 8.0 seconds.
+    Returns True immediately on HTTP 200, False on timeout.
+    """
+    print("[HEALTH] Checking...")
+    if dashboard:
+        dashboard.update_activity(f"Polling {health_url} (every 0.5s)...")
+    start_time = time.time()
+    attempt = 1
+    while time.time() - start_time < max_wait:
+        try:
+            if dashboard:
+                dashboard.update_activity(f"Health check attempt #{attempt} on {health_url}...")
+            req = urllib.request.Request(health_url, headers={"User-Agent": "Self-Healing-Watcher"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status == 200:
+                    elapsed = time.time() - start_time
+                    print(f"[HEALTH] PASS ({elapsed:.1f}s)")
+                    return True
+        except Exception:
+            # Server not yet ready or returning error
+            pass
+        attempt += 1
+        time.sleep(interval)
+
+    elapsed = time.time() - start_time
+    print(f"[HEALTH] TIMEOUT ({elapsed:.1f}s)")
+    return False
+
 
 class LogWatcherHandler(FileSystemEventHandler):
     def __init__(self, project_root, log_file):
@@ -58,6 +93,10 @@ class LogWatcherHandler(FileSystemEventHandler):
             self.last_pos = os.path.getsize(log_path)
         else:
             self.last_pos = 0
+        
+        is_demo = os.getenv("SELF_HEALING_DEMO_MODE", "").lower() in ("true", "1", "yes")
+        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.dashboard = get_dashboard(project_root, log_file, is_demo_mode=is_demo, model_name=model)
         
     def on_modified(self, event):
         # We only care about the server log
@@ -112,59 +151,144 @@ class LogWatcherHandler(FileSystemEventHandler):
             logging.error(f"[WATCHER] Max healing attempts ({MAX_ATTEMPTS}) reached for this error.")
             return
 
+        start_total = time.time()
         self.last_hash = tb_hash
         self.attempts += 1
         
-        print("[WATCHER] Error detected")
-        print("[AI] Analyzing failure...")
-        
         target_file = extract_target_file(latest_tb, self.project_root)
+        err_match = re.search(r'([A-Za-z0-9_]+Error:[^\n]+)', latest_tb)
+        err_desc = err_match.group(1) if err_match else "Exception"
+
+        print("[WATCHER] Error detected")
+        print("[AI] Analyzing...")
+
+        if self.dashboard and target_file:
+            self.dashboard.start_repair(err_desc, target_file)
+        
         if not target_file:
             print("[SAFETY] Target file outside project root or could not be determined")
             print("[HEALER] Patch rejected")
+            if self.dashboard:
+                self.dashboard.finish_repair(success=False, summary_msg="Target file outside project root")
             return
             
         try:
             with open(target_file, "r") as f:
                 source_code = f.read()
                 
+            if self.dashboard:
+                self.dashboard.set_stage_active("ai", "Querying Gemini API for root cause & patch...", est_time="3-6s")
+
+            start_ai = time.time()
             result = diagnose_and_fix(latest_tb, source_code)
-            print("[AI] Diagnosis complete")
+            ai_duration = time.time() - start_ai
+            print(f"[AI] Diagnosis complete ({ai_duration:.1f}s)")
+            
+            if self.dashboard:
+                self.dashboard.set_stage_complete("ai", success=True, info_msg="Patch generated", duration=ai_duration)
             
             fixed_code = result['fixed_code']
             
-            print("[VALIDATOR] Validating patch...")
-            if validate_code(fixed_code):
-                print("[VALIDATOR] PASS")
-                print("[HEALER] Applying patch...")
-                
-                with open(f"{target_file}.bak", "w") as f:
-                    f.write(source_code)
-                    
-                with open(target_file, "w") as f:
-                    f.write(fixed_code)
-                    
-                print("[SERVER] Reload triggered")
-                
-                branch_name = local_commit_fix(self.project_root, target_file)
-                if branch_name:
-                    github_push_and_pr(self.project_root, branch_name, target_file, result['explanation'])
-                    
-                print("[HEALER] Recovery successful")
-                
-                self.attempts = 0
-            else:
+            if self.dashboard:
+                self.dashboard.set_stage_active("validator", "Checking AST syntax with py_compile...")
+
+            if not validate_code(fixed_code):
                 print("[VALIDATOR] PATCH REJECTED")
+                print("[HEALER] Patch rejected")
+                if self.dashboard:
+                    self.dashboard.set_stage_complete("validator", success=False, info_msg="Syntax Error")
+                    self.dashboard.finish_repair(success=False, summary_msg="Syntax validation failed")
+                return
+            print("[VALIDATOR] PASS")
+            if self.dashboard:
+                self.dashboard.set_stage_complete("validator", success=True, info_msg="Syntax valid")
+
+            # Pytest bounded check for project test suite safety
+            if self.dashboard:
+                self.dashboard.set_stage_active("pytest", "Executing test suite safety shield...")
+
+            test_target = "tests/test_app.py" if os.path.exists(os.path.join(self.project_root, "tests", "test_app.py")) else "tests"
+            test_status, _, _ = run_pytest_bounded([test_target, "-q"], cwd=self.project_root, timeout=5)
+            if test_status != "PASS":
+                print(f"[TEST] FAIL ({test_status})")
+                print("[HEALER] Patch rejected")
+                if self.dashboard:
+                    self.dashboard.set_stage_complete("pytest", success=False, info_msg=f"Pytest {test_status}")
+                    self.dashboard.finish_repair(success=False, summary_msg="Pytest shield rejected patch")
+                return
+            print("[TEST] PASS")
+            if self.dashboard:
+                self.dashboard.set_stage_complete("pytest", success=True, info_msg="Regression tests passed")
+
+            print("[HEALER] Applying patch")
+            if self.dashboard:
+                self.dashboard.set_stage_active("patch", f"Backing up and patching {os.path.basename(target_file)}...")
+
+            bak_path = f"{target_file}.bak"
+            with open(bak_path, "w") as f:
+                f.write(source_code)
                 
+            with open(target_file, "w") as f:
+                f.write(fixed_code)
+
+            if self.dashboard:
+                self.dashboard.set_stage_complete("patch", success=True, info_msg=f"Patched {os.path.basename(target_file)}")
+                
+            # Configurable health check
+            config = get_config(self.project_root)
+            health_url = config.get("health_check_url", "http://127.0.0.1:8000/process_data")
+            
+            if self.dashboard:
+                self.dashboard.set_stage_active("health", f"Polling {health_url}...", est_time="0.5-2s")
+
+            health_passed = perform_health_check(health_url, max_wait=8.0, interval=0.5, timeout=1.5, dashboard=self.dashboard)
+            if not health_passed:
+                print("[ROLLBACK] Restoring original file...")
+                with open(bak_path, "r") as f:
+                    orig_code = f.read()
+                with open(target_file, "w") as f:
+                    f.write(orig_code)
+                print("[HEALER] Rollback complete. Patch rejected.")
+                if self.dashboard:
+                    self.dashboard.set_stage_complete("health", success=False, info_msg="Timeout (8s)")
+                    self.dashboard.finish_repair(success=False, summary_msg="Health check failed. Code rolled back.")
+                return
+            
+            if self.dashboard:
+                self.dashboard.set_stage_complete("health", success=True, info_msg="HTTP 200 OK")
+
+            if self.dashboard:
+                self.dashboard.set_stage_active("git", "Creating git fix branch & creating PR...")
+
+            branch_name = local_commit_fix(self.project_root, target_file)
+            if branch_name:
+                github_push_and_pr(self.project_root, branch_name, target_file, result.get('explanation', result.get('diagnosis', '')))
+                if self.dashboard:
+                    self.dashboard.set_stage_complete("git", success=True, info_msg=f"Branch: {branch_name}")
+            else:
+                if self.dashboard:
+                    self.dashboard.set_stage_complete("git", success=True, info_msg="Local Git fix complete")
+                
+            total_duration = time.time() - start_total
+            print(f"[HEALER] Recovery successful ({total_duration:.1f}s)")
+            if self.dashboard:
+                self.dashboard.finish_repair(success=True, summary_msg=f"Fixed {err_desc} in {os.path.basename(target_file)}")
+            
+            self.attempts = 0
+            
         except Exception as e:
             if "AI diagnosis failed safely" in str(e):
                 print("[HEALER] AI diagnosis failed safely")
                 print("[HEALER] No source code modified")
+                if self.dashboard:
+                    self.dashboard.set_stage_complete("ai", success=False, info_msg="AI unavailable")
+                    self.dashboard.finish_repair(success=False, summary_msg="AI diagnosis failed safely")
             else:
                 print(f"[HEALER] Process failed: {e}")
+                if self.dashboard:
+                    self.dashboard.finish_repair(success=False, summary_msg=f"Error: {e}")
 
 def start_watcher(project_root):
-    print("[WATCHER] Project detected")
     config = get_config(project_root)
     log_file = config.get("log_file", "logs/server.log")
     
@@ -175,6 +299,12 @@ def start_watcher(project_root):
     if not os.path.exists(log_path):
         open(log_path, 'a').close()
         
+    is_demo = os.getenv("SELF_HEALING_DEMO_MODE", "").lower() in ("true", "1", "yes")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    dashboard = get_dashboard(project_root, log_file, is_demo_mode=is_demo, model_name=model)
+    dashboard.print_banner()
+
+    print("[WATCHER] Project detected")
     event_handler = LogWatcherHandler(project_root, log_file)
     observer = Observer()
     
@@ -186,7 +316,7 @@ def start_watcher(project_root):
     print("[WATCHER] Log monitoring started")
     try:
         while True:
-            time.sleep(1)
+            time.sleep(0.5)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()

@@ -1,6 +1,9 @@
-fastapi
-uvicorn
-watchdog
-pydantic
-google-genai
-python-dotenv
+fastapi>=0.110.0
+uvicorn>=0.28.0
+watchdog>=4.0.0
+pydantic>=2.6.0
+google-genai>=0.1.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+colorama>=0.4.6
+pytest>=8.0.0
