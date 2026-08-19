@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>AutoHeal AI — Enterprise Autonomous Code Remediation & GitHub PR Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4edea3",
+                        "primary-container": "#10b981",
+                        "primary-fixed": "#6ffbbe",
+                        "on-primary-fixed": "#002113",
+                        "secondary": "#d0bcff",
+                        "secondary-container": "#571bc1",
+                        "tertiary": "#4cd7f6",
+                        "tertiary-container": "#00b2d0",
+                        "surface": "#0b1326",
+                        "surface-dim": "#070A0F",
+                        "surface-container-lowest": "#060e20",
+                        "surface-container-low": "#131b2e",
+                        "surface-container": "#171f33",
+                        "surface-container-high": "#222a3d",
+                        "surface-container-highest": "#2d3449",
+                        "surface-bright": "#31394d",
+                        "outline": "#86948a",
+                        "outline-variant": "#3c4a42",
+                        "error": "#ffb4ab",
+                        "error-container": "#93000a",
+                        "on-background": "#dae2fd",
+                        "on-surface": "#dae2fd",
+                        "on-surface-variant": "#bbcabf"
+                    },
+                    fontFamily: {
+                        "sans": ["Geist", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                        "code-sm": ["JetBrains Mono", "monospace"],
+                        "code-md": ["JetBrains Mono", "monospace"],
+                        "display-lg": ["Geist", "sans-serif"],
+                        "headline-sm": ["Geist", "sans-serif"],
+                        "body-md": ["Geist", "sans-serif"],
+                        "label-caps": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #070A0F;
+            color: #dae2fd;
+            font-family: 'Geist', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphic Panels */
+        .glass-panel {
+            background-color: rgba(11, 19, 38, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(60, 74, 66, 0.4);
+        }
+        .glass-panel-glow:hover {
+            border-color: rgba(78, 222, 163, 0.5);
+            box-shadow: 0 0 25px rgba(78, 222, 163, 0.12);
+        }
+
+        /* Pulsing status dot */
+        .pulse-dot {
+            position: relative;
+        }
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        /* Terminal CLI Spinner */
+        .cli-spinner::after {
+            content: '-';
+            animation: cli-spin 0.4s steps(4) infinite;
+        }
+        @keyframes cli-spin {
+            0% { content: '-'; }
+            25% { content: '\\'; }
+            50% { content: '|'; }
+            75% { content: '/'; }
+        }
+
+        /* Pipeline Connecting Dash Line */
+        .pipeline-dash {
+            stroke-dasharray: 4 4;
+            animation: dash-flow 1s linear infinite;
+        }
+        @keyframes dash-flow {
+            to { stroke-dashoffset: -8; }
+        }
+
+        /* Cursor Blink */
+        .cursor-blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Smooth tab view transitions */
+        .tab-view {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .tab-view.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(134, 148, 138, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(78, 222, 163, 0.5); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative selection:bg-primary/30 selection:text-primary-fixed">
+
+    <!-- Background WebGL Shader Canvas -->
+    <div class="fixed inset-0 w-full h-full -z-10 pointer-events-none opacity-70">
+        <canvas id="shader-canvas-ANIMATION_2" class="w-full h-full block"></canvas>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-lg">
+        <div class="flex justify-between items-center h-16 px-6 max-w-7xl mx-auto">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchNav('hero')">
+                <div class="w-9 h-9 rounded-xl bg-primary/10 border border-primary/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(78,222,163,0.3)]">
+                    <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">healing</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-primary absolute -top-1 -right-1 pulse-dot"></span>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+                    AutoHeal <span class="text-primary font-mono text-sm font-semibold px-2 py-0.5 rounded bg-primary/10 border border-primary/20">AI</span>
+                </span>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="hidden md:flex items-center gap-8">
+                <button class="nav-btn text-sm font-medium text-primary hover:text-primary transition-colors flex items-center gap-1.5" onclick="switchNav('hero')" id="nav-hero">
+                    <span class="material-symbols-outlined text-[18px]">play_circle</span> Live Demo
+                </button>
+                <button class="nav-btn text-sm font-medium text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5" onclick="switchNav('ingestion')" id="nav-ingestion">
+                    <span class="material-symbols-outlined text-[18px]">hub</span> Ingestion Hub
+                </button>
+                <button class="nav-btn text-sm font-medium text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5" onclick="switchNav('studio')" id="nav-studio">
+                    <span class="material-symbols-outlined text-[18px]">psychology</span> Healing Studio
+                </button>
+                <button class="nav-btn text-sm font-medium text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5" onclick="switchNav('reliability')" id="nav-reliability">
+                    <span class="material-symbols-outlined text-[18px]">speed</span> Reliability & Metrics
+                </button>
+            </nav>
+
+            <!-- Trailing CTA -->
+            <div class="flex items-center gap-3">
+                <a href="https://github.com/rajdeep-r24/Self-Healing-AI" target="_blank" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed text-xs font-bold font-mono px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(78,222,163,0.3)] hover:scale-105">
+                    <span class="material-symbols-outlined text-[16px]">integration_instructions</span>
+                    GitHub Repo
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main class="flex-grow pt-24 pb-20 max-w-7xl w-full mx-auto px-6">
+
+        <!-- =================================================================== -->
+        <!-- VIEW 1: HERO SECTION & INTERACTIVE SANDBOX SIMULATOR                -->
+        <!-- =================================================================== -->
+        <section id="view-hero" class="tab-view active space-y-16">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center min-h-[75vh]">
+                <!-- Left: Headline & Callouts -->
+                <div class="lg:col-span-6 space-y-6 relative">
+                    <div class="inline-flex items-center gap-2.5 border border-primary/30 bg-surface-container-low/60 backdrop-blur-md px-3.5 py-1 rounded-full">
+                        <span class="w-2 h-2 rounded-full bg-primary pulse-dot"></span>
+                        <span class="text-xs font-mono font-semibold text-primary">v1.0.0 Stable Demo Active</span>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+                        Autonomous Code Remediation for <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-tertiary to-secondary">Modern DevOps</span>
+                    </h1>
+                    <p class="text-lg text-on-surface-variant max-w-xl leading-relaxed">
+                        Instantly intercept unhandled application exceptions, diagnose root causes with Gemini LLMs, validate against regression tests, and open automated Pull Requests in seconds.
+                    </p>
+                    <div class="flex flex-wrap gap-4 pt-2">
+                        <button onclick="switchNav('ingestion')" class="bg-primary text-on-primary-fixed font-semibold px-6 py-3.5 rounded-xl flex items-center gap-2.5 hover:bg-primary-fixed transition-all hover:scale-105 shadow-[0_0_25px_rgba(78,222,163,0.35)]">
+                            Connect Your Repository
+                            <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                        </button>
+                        <button onclick="switchNav('studio')" class="bg-surface-container-high border border-outline-variant/60 text-white font-medium px-6 py-3.5 rounded-xl flex items-center gap-2 hover:bg-surface-bright transition-colors">
+                            <span class="material-symbols-outlined text-lg text-tertiary">science</span> Open Healing Studio
+                        </button>
+                    </div>
+
+                    <!-- Micro Stat Badges -->
+                    <div class="grid grid-cols-3 gap-4 pt-6 border-t border-outline-variant/20">
+                        <div>
+                            <div class="text-2xl font-bold font-mono text-primary">0.0015s</div>
+                            <div class="text-xs text-on-surface-variant">Log Detection Latency</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold font-mono text-tertiary">&lt; 0.1s</div>
+                            <div class="text-xs text-on-surface-variant">Health Check Time</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold font-mono text-secondary">100%</div>
+                            <div class="text-xs text-on-surface-variant">Fail-Closed Safety</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Interactive Sandbox Simulator -->
+                <div class="lg:col-span-6">
+                    <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl border border-outline-variant/60 relative group">
+                        <!-- Terminal Window Header -->
+                        <div class="h-11 bg-surface-container-highest border-b border-outline-variant/30 flex items-center px-4 justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-error/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-tertiary/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-primary/80"></div>
+                                <span class="ml-3 font-mono text-xs text-on-surface-variant">autoheal-watcher --live-demo</span>
+                            </div>
+                            <span class="text-xs font-mono text-primary flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> ACTIVE
+                            </span>
+                        </div>
+
+                        <!-- Terminal Body Canvas -->
+                        <div class="bg-black/90 p-6 min-h-[380px] font-mono text-sm flex flex-col justify-between relative">
+                            <!-- Idle State -->
+                            <div id="sim-idle" class="flex flex-col items-center justify-center h-full text-center py-12 space-y-4">
+                                <div class="w-16 h-16 rounded-full bg-surface-container-high border border-outline-variant/50 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-3xl text-primary animate-pulse">bug_report</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-semibold text-white">Interactive Demo Simulator</h4>
+                                    <p class="text-xs text-on-surface-variant mt-1">Simulate an unhandled crash in <code class="text-primary bg-surface-container px-1 py-0.5 rounded">app.py</code></p>
+                                </div>
+                                <button id="btn-simulate" onclick="runHeroSimulation()" class="mt-4 bg-primary hover:bg-primary-fixed text-on-primary-fixed font-bold px-6 py-2.5 rounded-lg transition-transform hover:scale-105 flex items-center gap-2 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
+                                    <span class="material-symbols-outlined text-[18px]">bolt</span> Trigger Intentional Crash
+                                </button>
+                            </div>
+
+                            <!-- Running Log Stream -->
+                            <div id="sim-stream" class="hidden flex-col space-y-3">
+                                <div class="text-error font-bold flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">error</span>
+                                    <span>[WATCHER] Unhandled KeyError intercepted in app.py:26</span>
+                                </div>
+                                <div class="text-xs text-on-surface-variant pl-6 font-mono">
+                                    KeyError: 'user_name' — Key does not exist in user_data dict
+                                </div>
+                                <div class="flex flex-col space-y-2 mt-4 pl-4 border-l-2 border-primary/30" id="stream-stages">
+                                    <!-- Injected via JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Success Pull Request Card -->
+                            <div id="sim-pr" class="hidden absolute inset-0 bg-surface/95 backdrop-blur-md flex items-center justify-center p-6">
+                                <div id="pr-card-content" class="bg-surface-container-high border border-primary/60 rounded-xl p-6 w-full max-w-md shadow-[0_0_40px_rgba(78,222,163,0.2)] transform scale-95 opacity-0 transition-all duration-500 space-y-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-primary/20 border border-primary flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-primary text-xl">merge</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-base font-bold text-white">Pull Request #23 Created!</h4>
+                                            <div class="text-xs font-mono text-tertiary">branch: release/v1.0-live-demo-stable</div>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-on-surface leading-relaxed">
+                                        <strong>AutoHeal AI Hotfix:</strong> Replaced missing dict key <code class="text-error bg-black px-1 rounded">'user_name'</code> with correct attribute <code class="text-primary bg-black px-1 rounded">'username'</code>.
+                                    </p>
+                                    <div class="flex justify-between text-xs font-mono bg-black/60 p-2.5 rounded-lg border border-outline-variant/30">
+                                        <span class="text-primary font-bold">+1 line added</span>
+                                        <span class="text-error font-bold">-1 line removed</span>
+                                        <span class="text-tertiary">Health: 200 OK</span>
+                                    </div>
+                                    <div class="flex gap-2.5 pt-2">
+                                        <button onclick="switchNav('studio')" class="flex-1 bg-primary text-on-primary-fixed font-bold py-2 rounded-lg text-xs hover:bg-primary-fixed transition-colors flex items-center justify-center gap-1.5">
+                                            <span class="material-symbols-outlined text-[16px]">visibility</span> Inspect Diff
+                                        </button>
+                                        <button onclick="resetHeroSimulation()" class="bg-surface-variant hover:bg-surface-bright text-white py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1">
+                                            <span class="material-symbols-outlined text-[16px]">refresh</span> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 2: REPOSITORY & INCIDENT INGESTION HUB                         -->
+        <!-- =================================================================== -->
+        <section id="view-ingestion" class="tab-view space-y-8">
+            <header class="space-y-2">
+                <h2 class="text-3xl font-bold tracking-tight text-white">Incident Ingestion Hub</h2>
+                <p class="text-base text-on-surface-variant">Connect your Git repositories, drag-and-drop project files, or paste raw stack traces for instant repair.</p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Left 8 Columns: Form and Ingestion Options -->
+                <div class="lg:col-span-8 space-y-6">
+                    <!-- Tab Switcher -->
+                    <div class="glass-panel p-1.5 rounded-xl flex gap-2">
+                        <button onclick="switchIngestionTab('github')" id="tab-btn-github" class="flex-1 py-2.5 px-4 rounded-lg bg-surface-container-highest text-white font-medium text-xs flex items-center justify-center gap-2 border border-outline-variant/60 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">hub</span> GitHub Connect
+                        </button>
+                        <button onclick="switchIngestionTab('upload')" id="tab-btn-upload" class="flex-1 py-2.5 px-4 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">upload_file</span> File Upload
+                        </button>
+                        <button onclick="switchIngestionTab('traceback')" id="tab-btn-traceback" class="flex-1 py-2.5 px-4 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">code</span> Traceback Paste
+                        </button>
+                    </div>
+
+                    <!-- Form 1: GitHub Connect -->
+                    <div id="ingest-github" class="glass-panel rounded-2xl p-8 space-y-6 relative overflow-hidden">
+                        <div class="space-y-1">
+                            <h3 class="text-xl font-bold text-white">Repository Connection</h3>
+                            <p class="text-xs text-on-surface-variant">Link your repository to enable autonomous branching, pull request creation, and health check validation.</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Repository URL</label>
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-lg">link</span>
+                                    <input type="url" id="repo-url-input" value="https://github.com/rajdeep-r24/Self-Healing-AI" class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 pl-11 pr-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="https://github.com/organization/repository"/>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Target Branch</label>
+                                    <select class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary">
+                                        <option>main</option>
+                                        <option>develop</option>
+                                        <option>release/v1.0-live-demo-stable</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Environment</label>
+                                    <select class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary">
+                                        <option>Production (P0 Sentinel)</option>
+                                        <option>Staging</option>
+                                        <option>Live Demo Mode</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Auto-Heal Toggle -->
+                            <div class="flex items-center justify-between p-4 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl">
+                                <div class="space-y-0.5">
+                                    <div class="text-sm font-bold text-white flex items-center gap-2">
+                                        Autonomous Hot-Patching
+                                        <span class="material-symbols-outlined text-xs text-primary">verified</span>
+                                    </div>
+                                    <div class="text-xs text-on-surface-variant">Automatically generate branches and PRs for intercepted unhandled exceptions.</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer"/>
+                                    <div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+                                </label>
+                            </div>
+
+                            <div class="pt-2 flex justify-end">
+                                <button onclick="triggerIngestionToStudio()" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-transform hover:scale-105 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
+                                    Connect & Launch Sentinel
+                                    <span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form 2: File Upload (Hidden by default) -->
+                    <div id="ingest-upload" class="hidden glass-panel rounded-2xl p-12 border-2 border-dashed border-outline-variant/60 hover:border-primary/60 transition-all flex flex-col items-center justify-center text-center space-y-4 cursor-pointer">
+                        <div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center">
+                            <span class="material-symbols-outlined text-3xl text-primary">cloud_upload</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Drag & Drop Project ZIP or Source Files</h3>
+                            <p class="text-xs text-on-surface-variant mt-1">Upload .zip project directories, .py source scripts, or server.log error files (Max 500MB)</p>
+                        </div>
+                        <button onclick="triggerIngestionToStudio()" class="bg-surface-variant hover:bg-surface-bright text-white text-xs font-semibold px-4 py-2 rounded-lg border border-outline-variant">
+                            Browse Local Files
+                        </button>
+                    </div>
+
+                    <!-- Form 3: Traceback Paste (Hidden by default) -->
+                    <div id="ingest-traceback" class="hidden glass-panel rounded-2xl overflow-hidden flex flex-col space-y-3 p-6">
+                        <div class="flex justify-between items-center pb-2 border-b border-outline-variant/30">
+                            <span class="font-mono text-xs text-on-surface-variant">Traceback Input Terminal</span>
+                            <button onclick="triggerIngestionToStudio()" class="text-primary hover:text-primary-fixed font-mono text-xs flex items-center gap-1 font-bold">
+                                <span class="material-symbols-outlined text-sm">play_arrow</span> Run Diagnostic
+                            </button>
+                        </div>
+                        <textarea id="traceback-textarea" rows="8" class="w-full bg-black/80 font-mono text-xs text-primary border border-outline-variant/50 rounded-xl p-4 focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Paste python traceback here..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Right 4 Columns: Activity Feed & Pipeline Insights -->
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="glass-panel rounded-2xl p-6 space-y-4">
+                        <h3 class="text-xs font-mono uppercase tracking-wider text-on-surface-variant border-b border-outline-variant/30 pb-3 flex items-center justify-between">
+                            <span>Recent Interceptions</span>
+                            <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+                        </h3>
+                        <div class="space-y-3.5">
+                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-error/20 flex gap-3">
+                                <span class="material-symbols-outlined text-error text-xl shrink-0">bug_report</span>
+                                <div>
+                                    <div class="font-mono text-xs text-white">app.py:26</div>
+                                    <div class="text-xs text-error font-medium">KeyError: 'user_name'</div>
+                                    <div class="text-[10px] text-on-surface-variant font-mono mt-1">2 mins ago • Auto-healed</div>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-primary/20 flex gap-3">
+                                <span class="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
+                                <div>
+                                    <div class="font-mono text-xs text-white">PR #23 Dispatched</div>
+                                    <div class="text-xs text-primary font-medium">Verified by 15 tests</div>
+                                    <div class="text-[10px] text-on-surface-variant font-mono mt-1">12 mins ago • Clean Rollback Ready</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-6 border border-secondary/30 relative overflow-hidden space-y-3">
+                        <div class="flex items-center gap-2 text-secondary">
+                            <span class="material-symbols-outlined text-xl">security</span>
+                            <h4 class="text-sm font-bold">Ephemeral Isolation Shield</h4>
+                        </div>
+                        <p class="text-xs text-on-surface-variant leading-relaxed">
+                            Every incoming traceback is processed in a memory-isolated sandbox. No raw customer credentials or proprietary databases are ever logged or persisted.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 3: HEALING STUDIO (REAL-TIME COMMAND CENTER & DIFF INSPECTOR)  -->
+        <!-- =================================================================== -->
+        <section id="view-studio" class="tab-view space-y-6">
+            <!-- Studio Status Bar -->
+            <div class="glass-panel rounded-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-outline-variant/50 shadow-md">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 px-3 py-1 bg-surface-variant/60 rounded-lg border border-outline-variant/40 font-mono text-xs text-white">
+                        <span class="material-symbols-outlined text-sm text-primary">description</span>
+                        <span>app.py:26</span>
+                    </div>
+                    <div class="h-4 w-px bg-outline-variant/40"></div>
+                    <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+                        <span class="material-symbols-outlined text-sm text-secondary">smart_toy</span>
+                        <span class="font-mono text-white">gemini-2.5-flash</span> (Demo Mode)
+                    </div>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="font-mono text-xs text-tertiary flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">timer</span>
+                        <span id="studio-timer">⏳ 3.2s elapsed</span>
+                    </div>
+                    <div class="px-3 py-1 rounded-full bg-primary/10 border border-primary/40 font-mono text-xs font-bold text-primary tracking-wider flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                        <span>RECOVERY SUCCESSFUL</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Studio Main Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Column: 7-Stage Execution Pipeline (3 Cols) -->
+                <div class="lg:col-span-4 glass-panel rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center justify-between border-b border-outline-variant/30 pb-3 mb-6">
+                            <span>Execution Pipeline</span>
+                            <span class="material-symbols-outlined text-base text-primary">account_tree</span>
+                        </h3>
+
+                        <ul class="space-y-6 relative">
+                            <!-- Connecting Line -->
+                            <div class="absolute left-[15px] top-3 bottom-3 w-0.5 bg-primary/30 z-0"></div>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">1. Error Interceptor</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant">KeyError: 'user_name' (0.001s)</div>
+                                </div>
+                            </li>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">2. Gemini Diagnostic Engine</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant">Root-cause isolated (2.4s)</div>
+                                </div>
+                            </li>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">3. Syntax Validator</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant">py_compile AST check PASS</div>
+                                </div>
+                            </li>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">4. Pytest Regression Shield</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant">15/15 tests passing</div>
+                                </div>
+                            </li>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">5. Atomic Hot-Patch</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant">app.py.bak generated</div>
+                                </div>
+                            </li>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">6. Short-Polling Health Check</div>
+                                    <div class="text-[11px] font-mono text-primary font-semibold">HTTP 200 OK verified in 0.05s</div>
+                                </div>
+                            </li>
+
+                            <li class="flex items-start gap-3.5 relative z-10">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined text-sm font-bold">check</span>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-white">7. Git Branch & PR Dispatcher</div>
+                                    <div class="text-[11px] font-mono text-tertiary">PR #23 Created on GitHub</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Confidence Meter -->
+                    <div class="p-4 bg-surface-container-lowest/80 rounded-xl border border-outline-variant/30 space-y-2">
+                        <div class="flex justify-between text-xs font-mono">
+                            <span class="text-on-surface-variant">AI Diagnostic Confidence</span>
+                            <span class="text-primary font-bold">98.4%</span>
+                        </div>
+                        <div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
+                            <div class="bg-primary h-full rounded-full w-[98%] shadow-[0_0_10px_rgba(78,222,163,0.8)]"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Code Diff & AI Rationale Inspector (9 Cols) -->
+                <div class="lg:col-span-8 space-y-6">
+                    <!-- Split Code Diff Viewer -->
+                    <div class="glass-panel rounded-2xl overflow-hidden border border-outline-variant/60 shadow-xl">
+                        <div class="bg-surface-container-highest px-4 py-2.5 border-b border-outline-variant/40 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm text-on-surface-variant">code</span>
+                                <span class="font-mono text-xs text-white">app.py (Unified Diff)</span>
+                            </div>
+                            <span class="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">Python 3.10+</span>
+                        </div>
+
+                        <!-- Diff Line Table -->
+                        <div class="bg-[#0b101b] font-mono text-xs overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <tbody class="divide-y divide-outline-variant/10 text-on-surface-variant">
+                                    <tr class="hover:bg-white/5">
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">23</td>
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">23</td>
+                                        <td class="pl-4 py-1 text-white">    try:</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5">
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">24</td>
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">24</td>
+                                        <td class="pl-4 py-1 text-white">        user_data = {"username": "admin", "role": "superuser"}</td>
+                                    </tr>
+                                    <!-- Bug Line (Red Deletion) -->
+                                    <tr class="bg-error-container/20 text-error">
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-error/30 bg-error-container/30 font-bold select-none">26</td>
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-error/30 bg-error-container/30 select-none"></td>
+                                        <td class="pl-4 py-1 whitespace-pre font-bold">-       greeting = f"Hello, {user_data['user_name']}!"</td>
+                                    </tr>
+                                    <!-- Fixed Line (Green Addition) -->
+                                    <tr class="bg-primary-container/20 text-primary-fixed">
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-primary/30 bg-primary-container/30 select-none"></td>
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-primary/30 bg-primary-container/30 font-bold select-none">26</td>
+                                        <td class="pl-4 py-1 whitespace-pre font-bold">+       greeting = f"Hello, {user_data['username']}!"<span class="inline-block w-2 h-3.5 bg-primary ml-1 align-middle cursor-blink"></span></td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5">
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">27</td>
+                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">27</td>
+                                        <td class="pl-4 py-1 text-white">        return {"message": greeting}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- AI Diagnostic Rationale Box -->
+                    <div class="glass-panel rounded-2xl p-6 space-y-3 border-secondary/30">
+                        <div class="flex items-center gap-2 text-secondary">
+                            <span class="material-symbols-outlined text-lg">psychology</span>
+                            <h4 class="text-sm font-bold">AI Root-Cause Diagnosis</h4>
+                        </div>
+                        <p class="text-xs text-on-surface leading-relaxed">
+                            The endpoint accessed <code class="bg-black/60 text-error px-1 py-0.5 rounded font-mono">user_data['user_name']</code>, but the dictionary only initialized the key <code class="bg-black/60 text-primary px-1 py-0.5 rounded font-mono">'username'</code>. Replacing the typo with the declared identifier completely restored the HTTP 200 contract without side effects.
+                        </p>
+                    </div>
+
+                    <!-- Bottom Action Toolbar -->
+                    <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                        <button onclick="simulateRollback()" class="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-semibold text-white hover:bg-surface-variant transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">history</span> 1-Click Rollback
+                        </button>
+                        <a href="https://github.com/rajdeep-r24/Self-Healing-AI/pull/23" target="_blank" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed px-6 py-2.5 rounded-xl text-xs font-bold font-mono transition-transform hover:scale-105 flex items-center gap-2 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
+                            <span class="material-symbols-outlined text-[18px]">merge</span> Review PR #23 on GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- VIEW 4: ENTERPRISE RELIABILITY & BENCHMARKS METRICS                 -->
+        <!-- =================================================================== -->
+        <section id="view-reliability" class="tab-view space-y-10">
+            <header class="space-y-2">
+                <h2 class="text-3xl font-bold tracking-tight text-white">Built for Mission-Critical Uptime</h2>
+                <p class="text-base text-on-surface-variant">Autonomous remediation operating in sub-milliseconds with fail-closed architecture, sandboxed tests, and zero data retention.</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <!-- Latency Chart Card (8 cols) -->
+                <div class="md:col-span-8 glass-panel rounded-2xl p-8 space-y-6 relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">speed</span> Resolution Latency Curve
+                            </h3>
+                            <p class="text-xs text-on-surface-variant mt-1">Autonomous turnaround from error detection to verified fix.</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-extrabold font-mono text-primary">&lt; 1.2s</div>
+                            <div class="text-xs font-mono text-tertiary">Average Recovery</div>
+                        </div>
+                    </div>
+
+                    <!-- SVG Latency Curve -->
+                    <div class="w-full pt-4">
+                        <svg class="w-full h-36 overflow-visible" viewBox="0 0 100 40" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="gridGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#4cd7f6"/>
+                                    <stop offset="100%" stop-color="#4edea3"/>
+                                </linearGradient>
+                            </defs>
+                            <line x1="0" y1="10" x2="100" y2="10" stroke="#3c4a42" stroke-dasharray="2" stroke-width="0.5" opacity="0.3"/>
+                            <line x1="0" y1="20" x2="100" y2="20" stroke="#3c4a42" stroke-dasharray="2" stroke-width="0.5" opacity="0.3"/>
+                            <line x1="0" y1="30" x2="100" y2="30" stroke="#3c4a42" stroke-dasharray="2" stroke-width="0.5" opacity="0.3"/>
+                            <path d="M0,35 Q20,30 40,25 T70,12 T90,6 T100,2" fill="none" stroke="url(#gridGrad)" stroke-width="2"/>
+                            <circle cx="40" cy="25" r="2" fill="#070A0F" stroke="#4cd7f6" stroke-width="1"/>
+                            <circle cx="70" cy="12" r="2" fill="#070A0F" stroke="#4edea3" stroke-width="1"/>
+                            <circle cx="100" cy="2" r="2.5" fill="#4edea3" class="animate-pulse"/>
+                        </svg>
+                        <div class="flex justify-between text-[11px] font-mono text-on-surface-variant pt-2 border-t border-outline-variant/30">
+                            <span>t-0s (Crash)</span>
+                            <span>t-0.8s (AI Fix)</span>
+                            <span>t-1.0s (Pytest)</span>
+                            <span>t-1.2s (Health 200 OK)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Retention Card (4 cols) -->
+                <div class="md:col-span-4 glass-panel rounded-2xl p-8 flex flex-col justify-between space-y-6 text-center">
+                    <div class="w-16 h-16 rounded-full bg-surface-container-high border border-outline-variant/50 flex items-center justify-center mx-auto text-primary">
+                        <span class="material-symbols-outlined text-3xl">enhanced_encryption</span>
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="text-base font-bold text-white">Zero Data Retention</h3>
+                        <p class="text-xs text-on-surface-variant leading-relaxed">Code contexts are analyzed in ephemeral RAM enclaves and discarded immediately upon Pull Request generation.</p>
+                    </div>
+                    <div class="bg-black/60 p-3 rounded-xl border border-outline-variant/30 text-left font-mono text-[11px] text-tertiary">
+                        <div>&gt; FLUSH_ENCLAVE()</div>
+                        <div class="text-on-surface-variant opacity-60">Memory cleared: 0 bytes retained</div>
+                    </div>
+                </div>
+
+                <!-- 3-Layer Sandbox Isolation (6 cols) -->
+                <div class="md:col-span-6 glass-panel rounded-2xl p-8 space-y-4">
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-tertiary">layers</span> 3-Layer Isolation Shield
+                        </h3>
+                        <p class="text-xs text-on-surface-variant">Sandboxed py_compile validation, bounded process tree timeout kills, and HTTP polling health checks.</p>
+                    </div>
+                    <div class="p-6 bg-surface-container-lowest/60 rounded-xl border border-outline-variant/30 flex items-center justify-center">
+                        <div class="w-full max-w-[240px] aspect-square rounded-xl border border-outline-variant/60 bg-surface-container-low flex items-center justify-center relative p-3">
+                            <span class="absolute top-2 left-2 text-[9px] font-mono text-on-surface-variant">L1: OS FS SHIELD</span>
+                            <div class="w-full h-full rounded-lg border border-tertiary/40 bg-tertiary/5 flex items-center justify-center relative p-3">
+                                <span class="absolute top-2 left-2 text-[9px] font-mono text-tertiary">L2: BOUNDED PYTEST</span>
+                                <div class="w-full h-full rounded-md border border-primary/60 bg-primary/10 flex items-center justify-center">
+                                    <span class="text-xs font-mono font-bold text-primary">L3: AI ATOMIC WRITE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Universal Ecosystem Grid (6 cols) -->
+                <div class="md:col-span-6 glass-panel rounded-2xl p-8 space-y-4">
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-secondary">hub</span> Supported Stacks & Tooling
+                        </h3>
+                        <p class="text-xs text-on-surface-variant">Native integration with enterprise frameworks, package managers, and container runtimes.</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 pt-2">
+                        <div class="bg-surface-container/60 p-3 rounded-xl border border-outline-variant/40 flex items-center justify-center gap-2 text-xs font-mono text-white">
+                            <span class="material-symbols-outlined text-sm text-primary">code</span> Python
+                        </div>
+                        <div class="bg-surface-container/60 p-3 rounded-xl border border-outline-variant/40 flex items-center justify-center gap-2 text-xs font-mono text-white">
+                            <span class="material-symbols-outlined text-sm text-tertiary">data_object</span> TypeScript
+                        </div>
+                        <div class="bg-surface-container/60 p-3 rounded-xl border border-outline-variant/40 flex items-center justify-center gap-2 text-xs font-mono text-white">
+                            <span class="material-symbols-outlined text-sm text-secondary">terminal</span> FastAPI
+                        </div>
+                        <div class="bg-surface-container/60 p-3 rounded-xl border border-outline-variant/40 flex items-center justify-center gap-2 text-xs font-mono text-white">
+                            <span class="material-symbols-outlined text-sm text-primary">view_in_ar</span> Docker
+                        </div>
+                        <div class="bg-surface-container/60 p-3 rounded-xl border border-outline-variant/40 flex items-center justify-center gap-2 text-xs font-mono text-white">
+                            <span class="material-symbols-outlined text-sm text-tertiary">cloud</span> GitHub Actions
+                        </div>
+                        <div class="bg-surface-container/60 p-3 rounded-xl border border-outline-variant/40 flex items-center justify-center gap-2 text-xs font-mono text-white">
+                            <span class="material-symbols-outlined text-sm text-secondary">dns</span> Uvicorn
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-outline-variant/20 py-8 px-6 text-center text-xs text-on-surface-variant">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">healing</span>
+                <span class="font-bold text-white">Enterprise Self-Healing AI</span> — Autonomous Code Remediation
+            </div>
+            <div class="font-mono text-[11px]">
+                Built with Google Gemini & Watchdog • MIT Licensed
+            </div>
+        </div>
+    </footer>
+
+    <!-- =================================================================== -->
+    <!-- INTERACTIVE JAVASCRIPT & WEBGL SHADER LOGIC                         -->
+    <!-- =================================================================== -->
+    <script>
+        // 1. Navigation Switcher
+        function switchNav(viewId) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-primary');
+                el.classList.add('text-on-surface-variant');
+            });
+
+            const targetView = document.getElementById(`view-${viewId}`);
+            const targetBtn = document.getElementById(`nav-${viewId}`);
+            if (targetView) targetView.classList.add('active');
+            if (targetBtn) {
+                targetBtn.classList.remove('text-on-surface-variant');
+                targetBtn.classList.add('text-primary');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 2. Ingestion Hub Tabs
+        function switchIngestionTab(tabKey) {
+            ['github', 'upload', 'traceback'].forEach(k => {
+                document.getElementById(`ingest-${k}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${k}`).classList.remove('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
+                document.getElementById(`tab-btn-${k}`).classList.add('text-on-surface-variant');
+            });
+            document.getElementById(`ingest-${tabKey}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
+            activeBtn.classList.add('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
+            activeBtn.classList.remove('text-on-surface-variant');
+        }
+
+        function triggerIngestionToStudio() {
+            switchNav('studio');
+        }
+
+        function simulateRollback() {
+            alert("Rollback Triggered! Restored code state from backup (app.py.bak).");
+        }
+
+        // 3. Hero Interactive Simulation Sequence
+        const simStages = [
+            { text: "Watcher: Exception Intercepted in app.py", icon: "check_circle", color: "text-primary", delay: 700 },
+            { text: "Gemini 2.5 Flash: Diagnosing Root Cause...", isSpinner: true, color: "text-tertiary", delay: 1400 },
+            { text: "Validator: py_compile AST check PASS", icon: "code", color: "text-primary", delay: 800 },
+            { text: "Pytest Shield: Executing 15 tests...", isSpinner: true, color: "text-secondary", delay: 1200 },
+            { text: "Healer: Hot-Patch Applied & .bak Saved", icon: "healing", color: "text-primary", delay: 800 },
+            { text: "Health Check: HTTP 200 OK Verified", icon: "health_and_safety", color: "text-primary", delay: 700 }
+        ];
+
+        async function runHeroSimulation() {
+            document.getElementById('sim-idle').classList.add('hidden');
+            document.getElementById('sim-stream').classList.remove('hidden');
+            document.getElementById('sim-stream').classList.add('flex');
+            
+            const stageContainer = document.getElementById('stream-stages');
+            stageContainer.innerHTML = '';
+
+            for (const stage of simStages) {
+                const row = document.createElement('div');
+                row.className = `flex items-center gap-2 text-xs opacity-0 translate-x-2 transition-all duration-300`;
+                
+                if (stage.isSpinner) {
+                    row.innerHTML = `<span class="cli-spinner ${stage.color} font-bold w-4 inline-block"></span> <span class="text-white">${stage.text}</span>`;
+                } else {
+                    row.innerHTML = `<span class="material-symbols-outlined text-[16px] ${stage.color}">${stage.icon}</span> <span class="text-white">${stage.text}</span>`;
+                }
+                
+                stageContainer.appendChild(row);
+                setTimeout(() => row.classList.remove('opacity-0', 'translate-x-2'), 40);
+                await new Promise(r => setTimeout(r, stage.delay));
+                
+                if (stage.isSpinner) {
+                    row.innerHTML = `<span class="material-symbols-outlined text-[16px] text-primary">check</span> <span class="text-on-surface-variant">${stage.text.replace('...', '')} (PASS)</span>`;
+                }
+            }
+
+            await new Promise(r => setTimeout(r, 600));
+            document.getElementById('sim-pr').classList.remove('hidden');
+            setTimeout(() => {
+                const card = document.getElementById('pr-card-content');
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function resetHeroSimulation() {
+            document.getElementById('sim-pr').classList.add('hidden');
+            document.getElementById('sim-stream').classList.add('hidden');
+            document.getElementById('sim-stream').classList.remove('flex');
+            document.getElementById('sim-idle').classList.remove('hidden');
+            const card = document.getElementById('pr-card-content');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+        }
+
+        // 4. WebGL Canvas Shader Background (ANIMATION_2 from Stitch)
+        (function() {
+            const canvas = document.getElementById('shader-canvas-ANIMATION_2');
+            if (!canvas) return;
+
+            function syncSize() {
+                const w = window.innerWidth || 1280;
+                const h = window.innerHeight || 720;
+                if (canvas.width !== w || canvas.height !== h) {
+                    canvas.width = w;
+                    canvas.height = h;
+                }
+            }
+            window.addEventListener('resize', syncSize);
+            syncSize();
+
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) return;
+
+            const vs = `attribute vec2 a_position;
+            varying vec2 v_texCoord;
+            void main() {
+                v_texCoord = a_position * 0.5 + 0.5;
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }`;
+
+            const fs = `precision highp float;
+            uniform float u_time;
+            uniform vec2 u_resolution;
+            uniform vec2 u_mouse;
+            varying vec2 v_texCoord;
+
+            float hash(vec2 p) {
+                p = fract(p * vec2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y);
+            }
+
+            void main() {
+                vec2 uv = v_texCoord;
+                vec2 p = (uv * 2.0 - 1.0);
+                p.x *= u_resolution.x / u_resolution.y;
+                
+                // Animated grid
+                vec2 grid = fract(uv * 32.0 + u_time * 0.04);
+                float line = smoothstep(0.02, 0.0, grid.x) + smoothstep(0.02, 0.0, grid.y);
+                
+                // Background dark space
+                vec3 color = vec3(0.027, 0.039, 0.059);
+                
+                // Floating data particles
+                for(float i = 0.0; i < 5.0; i++) {
+                    vec2 pos = vec2(hash(vec2(i, 1.0)), hash(vec2(i, 2.0))) * 2.0 - 1.0;
+                    pos.x += sin(u_time * 0.2 + i) * 0.5;
+                    pos.y += cos(u_time * 0.3 + i) * 0.5;
+                    float d = length(p - pos);
+                    float glow = 0.002 / (d * d + 0.01);
+                    color += vec3(0.06, 0.72, 0.5) * glow * (0.5 + 0.5 * sin(u_time + i));
+                }
+
+                // Cyan radial glow
+                float centerPulse = 1.0 - length(p * 0.5);
+                color += vec3(0.02, 0.71, 0.83) * pow(centerPulse, 4.0) * (0.08 + 0.04 * sin(u_time));
+                
+                gl_FragColor = vec4(color + line * 0.025, 1.0);
+            }`;
+
+            function cs(type, src) {
+                const s = gl.createShader(type);
+                gl.shaderSource(s, src);
+                gl.compileShader(s);
+                return s;
+            }
+
+            const prog = gl.createProgram();
+            gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+            gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+            gl.linkProgram(prog);
+            gl.useProgram(prog);
+
+            const buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+            const pos = gl.getAttribLocation(prog, 'a_position');
+            gl.enableVertexAttribArray(pos);
+            gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+            const uTime = gl.getUniformLocation(prog, 'u_time');
+            const uRes = gl.getUniformLocation(prog, 'u_resolution');
+            const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+            let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+            window.addEventListener('mousemove', (event) => {
+                mouse.x = event.clientX;
+                mouse.y = canvas.height - event.clientY;
+            });
+
+            function render(t) {
+                syncSize();
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                if (uTime) gl.uniform1f(uTime, t * 0.001);
+                if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+                if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                requestAnimationFrame(render);
+            }
+            render(0);
+        })();
+    </script>
+</body>
+</html>
