@@ -22,7 +22,6 @@ app = FastAPI()
 async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
         greeting = f"Hello, {user_data['username']}!"
         return {"message": greeting}
     except Exception as e:
@@ -30,5 +29,3 @@ async def process_data():
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         logger.error(f"Unhandled exception in /process_data:\n{tb_str}")
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
-
-    
