@@ -52,7 +52,8 @@ def init_project():
         
     config_data = {
         "project_root": ".",
-        "log_file": "logs/server.log"
+        "log_file": "logs/server.log",
+        "health_check_url": "http://127.0.0.1:8000/process_data"
     }
     
     try:

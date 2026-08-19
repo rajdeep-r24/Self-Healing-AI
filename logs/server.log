@@ -1,7 +1,14 @@
-2026-08-12 17:49:43,580 - ERROR - Unhandled exception in /process_data:
+2026-08-19 14:10:36,072 - ERROR - Unhandled exception in /process_data:
 Traceback (most recent call last):
-  File "C:\Users\User\Desktop\Healing AI\Enterprise-Self-Healing\app.py", line 26, in process_data
+  File "C:\Users\PRANAV BADE\Enterprise-Self-Healing-Git\app.py", line 26, in process_data
     greeting = f"Hello, {user_data['user_name']}!"
                          ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'user_name'
+
+2026-08-19 14:10:59,938 - ERROR - Unhandled exception in /process_data:
+Traceback (most recent call last):
+  File "C:\Users\PRANAV BADE\Enterprise-Self-Healing-Git\app.py", line 26, in process_data
+    greeting = f"Hello, {user_data['username']}!"
+                         ^^^^^^^^^^^^^^^^^^^^^^
 KeyError: 'user_name'
 
