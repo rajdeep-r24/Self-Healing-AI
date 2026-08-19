@@ -69,9 +69,13 @@ def github_push_and_pr(project_root, branch_name, target_file, diagnosis):
             print("[GITHUB] Integration skipped: Could not determine GitHub repository")
             return
             
-        # Push the branch
+        # Push the branch autonomously using authenticated URL
         print(f"[GITHUB] Pushing branch {branch_name} to origin...")
-        subprocess.run(["git", "push", "-u", "origin", branch_name], cwd=project_root, check=True, capture_output=True)
+        push_url = f"https://x-access-token:{token}@github.com/{repo}.git"
+        push_res = subprocess.run(["git", "push", "-u", push_url, branch_name], cwd=project_root, capture_output=True, text=True)
+        if push_res.returncode != 0:
+            # Fallback to standard git push if authenticated push url fails
+            subprocess.run(["git", "push", "-u", "origin", branch_name], cwd=project_root, check=True, capture_output=True)
         print("[GITHUB] Push successful")
         
         # Create PR via GitHub API
