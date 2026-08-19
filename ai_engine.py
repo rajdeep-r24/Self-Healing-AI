@@ -11,6 +11,8 @@ class AIResponse(BaseModel):
     fixed_code: str
 
 import time
+import os
+import re
 from google.genai.errors import APIError
 
 def diagnose_and_fix(traceback_text: str, source_code: str) -> dict:
@@ -18,14 +20,12 @@ def diagnose_and_fix(traceback_text: str, source_code: str) -> dict:
     Sends the traceback and source code to the AI engine to get a fix.
     Returns a dictionary with 'diagnosis' and 'fixed_code'.
     """
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("GOOGLE_API_KEY environment variable is not set.")
+        raise ValueError("GEMINI_API_KEY environment variable is not set.")
 
-    primary_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
-    fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro")
-    
-    client = genai.Client(api_key=api_key)
+    primary_model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash")
     
     prompt = f"""
     You are an autonomous AI Software Engineer. Your goal is to FIX a broken file.
@@ -50,15 +50,29 @@ def diagnose_and_fix(traceback_text: str, source_code: str) -> dict:
     ```
     """
 
-    max_attempts = 3
-    for attempt in range(1, max_attempts + 1):
-        try:
-            print(f"[AI] Gemini request attempt {attempt}/{max_attempts}")
+    global_start = time.time()
+    total_budget_sec = 80.0 
+    
+    models_to_try = [("PRIMARY", primary_model)]
+    if fallback_model:
+        models_to_try.append(("FALLBACK", fallback_model))
+        
+    for attempt_idx, (role, current_model) in enumerate(models_to_try):
+        elapsed = time.time() - global_start
+        remaining = total_budget_sec - elapsed
+        
+        if remaining <= 0:
+            print("[AI] Gemini request timed out (Total time limit reached)")
+            raise RuntimeError("AI_SERVICE_UNAVAILABLE")
             
-            # Switch to fallback model on the last attempt if configured
-            current_model = primary_model
-            if attempt == max_attempts and fallback_model:
-                current_model = fallback_model
+        current_req_timeout = min(30.0, remaining)
+        current_req_timeout_ms = int(current_req_timeout * 1000)
+        
+        client = genai.Client(api_key=api_key, http_options={'timeout': current_req_timeout_ms})
+
+        try:
+            print(f"[AI] Gemini request attempt {attempt_idx+1}/{len(models_to_try)}")
+            if role == "FALLBACK":
                 print(f"[AI] Switching to fallback model: {current_model}")
             
             response = client.models.generate_content(
@@ -71,17 +85,50 @@ def diagnose_and_fix(traceback_text: str, source_code: str) -> dict:
                 )
             )
             
-            data = json.loads(response.text)
+            raw_text = response.text
+            raw_text = re.sub(r"^```(?:json)?", "", raw_text.strip(), flags=re.MULTILINE)
+            raw_text = re.sub(r"```$", "", raw_text.strip(), flags=re.MULTILINE)
+            
+            try:
+                data = json.loads(raw_text)
+            except json.JSONDecodeError:
+                raise ValueError("AI response was not valid JSON")
+
+            if "fixed_code" not in data or not data["fixed_code"]:
+                raise ValueError("Missing or empty fixed_code in AI response")
+            if "diagnosis" not in data or not data["diagnosis"]:
+                raise ValueError("Missing or empty diagnosis in AI response")
+
             print("[AI] Analysis successful")
             return data
             
         except Exception as e:
-            if attempt < max_attempts:
-                # Check for 503 or generic retryable
-                wait_time = 2 ** attempt
-                print(f"[AI] Gemini API error (Attempt {attempt}): {e}")
-                print(f"[AI] Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
+            err_str = str(e)
+            is_eval = os.getenv("EVALUATION_MODE", "false").lower() == "true"
+            err_str_lower = err_str.lower()
+            is_timeout = "timeout" in err_str_lower
+            
+            # Print the error
+            if is_timeout:
+                print("[AI] Gemini request timed out")
             else:
-                print(f"[AI] Gemini temporarily unavailable after {max_attempts} attempts.")
+                print(f"[AI] Gemini API error ({role}): {e}")
+                
+            # Decide if retryable
+            is_retryable = any(x in err_str_lower for x in ["429", "503", "404", "resourceexhausted", "unavailable", "timeout", "network error"])
+            
+            if not is_retryable:
+                print("[AI] Non-retryable error encountered.")
                 raise RuntimeError("AI diagnosis failed safely")
+                
+            # If we exhausted all configured models
+            if attempt_idx == len(models_to_try) - 1:
+                print(f"[AI] Gemini temporarily unavailable after {len(models_to_try)} attempts.")
+                if is_eval:
+                    if is_timeout:
+                        print("[AI] Gemini request timed out")
+                    else:
+                        print(f"[AI] Gemini API unavailable during evaluation: {e}")
+                raise RuntimeError("AI_SERVICE_UNAVAILABLE")
+                
+            # Otherwise loop continues to the fallback model
