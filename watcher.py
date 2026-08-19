@@ -53,6 +53,11 @@ class LogWatcherHandler(FileSystemEventHandler):
         self.last_hash = None
         self.attempts = 0
         self.processing = False
+        log_path = os.path.join(self.project_root, self.log_file)
+        if os.path.exists(log_path):
+            self.last_pos = os.path.getsize(log_path)
+        else:
+            self.last_pos = 0
         
     def on_modified(self, event):
         # We only care about the server log
