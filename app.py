@@ -27,9 +27,11 @@ from typing import Optional, List, Dict, Any
 try:
     import ai_engine
     import validator
+    import git_module
 except ImportError:
     ai_engine = None
     validator = None
+    git_module = None
 
 app = FastAPI(title="Enterprise Self-Healing AI")
 
@@ -163,11 +165,28 @@ async def trigger_heal(req: HealRequest):
             {"type": "ctx", "oldL": 3, "newL": 3, "code": "    return {'status': 'ok'}"}
         ]
 
-    # 5. Create Branch & PR Reference
-    branch_slug = repo_name.lower() if repo_name else "repo"
-    branch_name = f"autoheal/fix-{branch_slug}-{uuid.uuid4().hex[:6]}"
-    pr_number = 24 if "Self-Healing-AI" in repo_url else int(str(uuid.uuid4().int)[:3])
-    pr_url = f"{repo_url}/pull/{pr_number}" if "Self-Healing-AI" in repo_url else f"{repo_url}/pulls"
+    # 5. Autonomous Branch & Pull Request Creation on GitHub
+    branch_name = f"autoheal/fix-{uuid.uuid4().hex[:6]}"
+    pr_number = None
+    pr_url = f"{repo_url}/pulls"
+    
+    if git_module and os.getenv("GITHUB_TOKEN") and owner != "organization" and owner != "local-project" and owner != "workspace":
+        try:
+            gh_res = git_module.create_autonomous_pr(
+                repo_str=f"{owner}/{repo_name}",
+                target_file=target_file,
+                fixed_code=fixed_code,
+                diagnosis=diagnosis,
+                base_branch=branch
+            )
+            if gh_res.get("branch_name"):
+                branch_name = gh_res["branch_name"]
+            if gh_res.get("pr_url"):
+                pr_url = gh_res["pr_url"]
+            if gh_res.get("pr_number"):
+                pr_number = gh_res["pr_number"]
+        except Exception as e:
+            logger.warning(f"Autonomous PR creation warning: {e}")
 
     return {
         "status": "success",
