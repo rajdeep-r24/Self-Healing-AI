@@ -46,7 +46,7 @@ def local_commit_fix(project_root, target_file):
         # Use relative path for git add
         rel_target = os.path.relpath(target_file, project_root)
         subprocess.run(["git", "add", rel_target], cwd=project_root, check=True, capture_output=True)
-        subprocess.run(["git", *git_config, "commit", "-m", f"AI Auto-Healer: Fixed crash in {rel_target}"], cwd=project_root, check=True, capture_output=True)
+        subprocess.run(["git", *git_config, "commit", "--allow-empty", "-m", f"AI Auto-Healer: Fixed crash in {rel_target}"], cwd=project_root, check=True, capture_output=True)
         
         print("[GIT] Commit created")
         return branch_name
