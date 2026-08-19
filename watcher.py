@@ -54,6 +54,11 @@ class LogWatcherHandler(FileSystemEventHandler):
         self.last_hash = None
         self.attempts = 0
         self.processing = False
+        log_path = os.path.join(self.project_root, self.log_file)
+        if os.path.exists(log_path):
+            self.last_pos = os.path.getsize(log_path)
+        else:
+            self.last_pos = 0
         
     def on_modified(self, event):
         # We only care about the server log
@@ -77,8 +82,20 @@ class LogWatcherHandler(FileSystemEventHandler):
         if not os.path.exists(log_path):
             return
             
-        with open(log_path, 'r') as f:
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            f.seek(0, os.SEEK_END)
+            current_size = f.tell()
+            
+            if current_size < self.last_pos:
+                self.last_pos = 0
+                self.last_hash = None
+                
+            if current_size == self.last_pos:
+                return
+                
+            f.seek(self.last_pos)
             content = f.read()
+            self.last_pos = f.tell()
             
         if "Traceback" not in content:
             return
