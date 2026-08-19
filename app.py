@@ -3,7 +3,8 @@ import os
 import sys
 import traceback
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 # Ensure logs directory exists
 os.makedirs("logs", exist_ok=True)
@@ -16,7 +17,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(title="Enterprise Self-Healing AI")
+
+if os.path.exists("frontend"):
+    app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+async def root():
+    if os.path.exists("frontend/index.html"):
+        return FileResponse("frontend/index.html")
+    return {"message": "Enterprise Self-Healing AI API"}
 
 @app.get("/process_data")
 async def process_data():
