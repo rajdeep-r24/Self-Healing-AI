@@ -353,15 +353,18 @@
                 <!-- Left 8 Columns: Form and Ingestion Options -->
                 <div class="lg:col-span-8 space-y-6">
                     <!-- Tabs Header -->
-                    <div class="flex border-b border-outline-variant/40 bg-surface-container-low p-1.5 rounded-xl gap-2">
-                        <button onclick="switchIngestionTab('github')" id="tab-btn-github" class="flex-1 py-2.5 px-4 rounded-lg bg-surface-container-highest text-white font-medium text-xs flex items-center justify-center gap-2 border border-outline-variant/60 transition-all">
+                    <div class="flex border-b border-outline-variant/40 bg-surface-container-low p-1.5 rounded-xl gap-2 overflow-x-auto">
+                        <button onclick="switchIngestionTab('github')" id="tab-btn-github" class="flex-1 min-w-[140px] py-2.5 px-3 rounded-lg bg-surface-container-highest text-white font-medium text-xs flex items-center justify-center gap-2 border border-outline-variant/60 transition-all">
                             <span class="material-symbols-outlined text-[18px] text-primary">link</span> Any GitHub Repo
                         </button>
-                        <button onclick="switchIngestionTab('upload')" id="tab-btn-upload" class="flex-1 py-2.5 px-4 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
-                            <span class="material-symbols-outlined text-[18px]">upload_file</span> Real File / Project Upload
+                        <button onclick="switchIngestionTab('local')" id="tab-btn-local" class="flex-1 min-w-[160px] py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px] text-tertiary">terminal</span> Local IDE / Terminal (TUI)
                         </button>
-                        <button onclick="switchIngestionTab('traceback')" id="tab-btn-traceback" class="flex-1 py-2.5 px-4 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
-                            <span class="material-symbols-outlined text-[18px]">code</span> Real Traceback & Code Paste
+                        <button onclick="switchIngestionTab('upload')" id="tab-btn-upload" class="flex-1 min-w-[140px] py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">upload_file</span> File Upload
+                        </button>
+                        <button onclick="switchIngestionTab('traceback')" id="tab-btn-traceback" class="flex-1 min-w-[140px] py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">code</span> Raw Traceback
                         </button>
                     </div>
 
@@ -421,11 +424,81 @@
                                 </label>
                             </div>
 
-                            <div class="pt-2 flex justify-end">
+                            <div class="pt-2 flex justify-between items-center gap-3">
+                                <button onclick="switchIngestionTab('local')" class="px-4 py-3 rounded-xl border border-outline-variant/60 text-xs font-mono text-white hover:bg-surface-variant flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-tertiary text-sm">terminal</span> Run in Local IDE (TUI)
+                                </button>
                                 <button onclick="triggerIngestionToStudio()" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-transform hover:scale-105 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
                                     Trigger Autonomous AI Repair
                                     <span class="material-symbols-outlined text-[18px]">rocket_launch</span>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form 4: Local VS Code / TUI Terminal Launcher -->
+                    <div id="ingest-local" class="hidden glass-panel rounded-2xl p-8 space-y-6 relative overflow-hidden">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-tertiary text-2xl">terminal</span>
+                                    <h3 class="text-xl font-bold text-white">Local IDE & Terminal TUI Execution</h3>
+                                </div>
+                                <p class="text-xs text-on-surface-variant leading-relaxed">
+                                    Execute the self-healing sentinel inside your local IDE / terminal with your authenticated Git identity. Bypasses all browser permission limits, patches code directly on disk, and pushes PRs via local Git.
+                                </p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded bg-tertiary/10 border border-tertiary/30 text-tertiary font-mono text-[11px] font-bold">100% LOCAL AUTH</span>
+                        </div>
+
+                        <!-- 1-Click Launch Toolbar -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-surface-container-lowest/80 border border-outline-variant/40 rounded-xl space-y-2">
+                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm text-primary">play_circle</span> 1-Click VS Code Launcher
+                                </div>
+                                <p class="text-[11px] text-on-surface-variant">Open current project directly in VS Code and trigger terminal watcher:</p>
+                                <a id="vscode-deep-link" href="vscode://file/c:/Users/PRANAV%20BADE/Enterprise-Self-Healing-Git" class="inline-flex items-center gap-2 bg-[#007acc] hover:bg-[#0062a3] text-white px-4 py-2 rounded-lg text-xs font-bold font-mono transition-transform hover:scale-105">
+                                    <span class="material-symbols-outlined text-sm">open_in_new</span> Launch in VS Code
+                                </a>
+                            </div>
+
+                            <div class="p-4 bg-surface-container-lowest/80 border border-outline-variant/40 rounded-xl space-y-2">
+                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm text-tertiary">content_copy</span> Terminal CLI Command
+                                </div>
+                                <p class="text-[11px] text-on-surface-variant">Run in any terminal at the root of your project repository:</p>
+                                <div class="flex items-center bg-black/80 border border-outline-variant/40 rounded-lg px-3 py-1.5 justify-between font-mono text-xs text-primary">
+                                    <code id="cli-cmd-text">python self_healing_cli.py start</code>
+                                    <button onclick="copyCliCommand()" class="text-white hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Terminal TUI Sandbox -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs font-mono text-on-surface-variant">
+                                <span>Live TUI Terminal Interface Preview:</span>
+                                <button onclick="runInteractiveTUIDemo()" class="text-primary hover:underline flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">play_arrow</span> Run TUI Demo in Sandbox
+                                </button>
+                            </div>
+                            <div class="bg-black/95 border border-outline-variant/50 rounded-xl p-4 font-mono text-xs text-white overflow-x-auto space-y-2 shadow-inner">
+                                <div class="text-cyan-400 font-bold">╔══════════════════════════════════════════════════════════════════════════════╗</div>
+                                <div class="text-cyan-400">║             <span class="text-white font-extrabold">⚡ ENTERPRISE SELF-HEALING AI — LIVE MONITOR ⚡</span>                ║</div>
+                                <div class="text-cyan-400">║  <span class="text-emerald-400">● MONITORING ACTIVE</span>  |  Log: <span class="text-yellow-300">logs/server.log</span>  |  <span class="text-yellow-300">[PRODUCTION]</span>             ║</div>
+                                <div class="text-cyan-400 font-bold">╚══════════════════════════════════════════════════════════════════════════════╝</div>
+                                <div id="local-tui-stream" class="space-y-1.5 pt-2 text-slate-300">
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 1. Error Interceptor &gt; Active log listener engaged</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 2. AI Diagnostic Engine &gt; Gemini 2.5 Flash ready</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 3. Syntax Validator &gt; AST py_compile shield active</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 4. Pytest Regression Shield &gt; Bounded test suite loaded</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 5. Atomic Hot-Patch &gt; Automatic .bak rollback ready</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 6. Short-Polling Health Check &gt; HTTP 200 verification active</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 7. Git Branch & GitHub PR &gt; Local Git identity configured</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -513,6 +586,17 @@ IndexError: list index out of range"></textarea>
                             </div>
                         </div>
                     </div>
+
+                    <div class="glass-panel rounded-2xl p-6 border border-secondary/30 relative overflow-hidden space-y-3">
+                        <div class="flex items-center gap-2 text-secondary">
+                            <span class="material-symbols-outlined text-xl">security</span>
+                            <h4 class="text-sm font-bold">Universal Sandbox Isolation</h4>
+                        </div>
+                        <p class="text-xs text-on-surface-variant leading-relaxed">
+                            Every repository connected runs in an isolated ephemeral execution sandbox. Safety checks prevent unauthorized file alterations outside your declared target repository.
+                        </p>
+                    </div>
+                </div>
 
                     <div class="glass-panel rounded-2xl p-6 border border-secondary/30 relative overflow-hidden space-y-3">
                         <div class="flex items-center gap-2 text-secondary">
@@ -965,15 +1049,55 @@ IndexError: list index out of range"></textarea>
 
         // 2. Ingestion Hub Tabs
         function switchIngestionTab(tabKey) {
-            ['github', 'upload', 'traceback'].forEach(k => {
-                document.getElementById(`ingest-${k}`).classList.add('hidden');
-                document.getElementById(`tab-btn-${k}`).classList.remove('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
-                document.getElementById(`tab-btn-${k}`).classList.add('text-on-surface-variant');
+            ['github', 'local', 'upload', 'traceback'].forEach(k => {
+                const el = document.getElementById(`ingest-${k}`);
+                const btn = document.getElementById(`tab-btn-${k}`);
+                if (el) el.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
+                    btn.classList.add('text-on-surface-variant');
+                }
             });
-            document.getElementById(`ingest-${tabKey}`).classList.remove('hidden');
+            const targetEl = document.getElementById(`ingest-${tabKey}`);
             const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
-            activeBtn.classList.add('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
-            activeBtn.classList.remove('text-on-surface-variant');
+            if (targetEl) targetEl.classList.remove('hidden');
+            if (activeBtn) {
+                activeBtn.classList.add('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
+                activeBtn.classList.remove('text-on-surface-variant');
+            }
+        }
+
+        function copyCliCommand() {
+            const cmd = document.getElementById('cli-cmd-text').innerText;
+            navigator.clipboard.writeText(cmd).then(() => {
+                alert("CLI Command copied to clipboard! Paste and run it in your project's terminal.");
+            }).catch(() => {
+                prompt("Copy command:", cmd);
+            });
+        }
+
+        function runInteractiveTUIDemo() {
+            const stream = document.getElementById('local-tui-stream');
+            if (!stream) return;
+            stream.innerHTML = '<div class="text-yellow-400 animate-pulse font-bold">⚡ Intercepting runtime failure in logs/server.log...</div>';
+            
+            const steps = [
+                { delay: 400, text: '<div class="text-error font-bold">✖ 1. Error Interceptor &gt; KeyError: "user_name" at app.py:26</div>' },
+                { delay: 900, text: '<div class="text-cyan-400">⠋ 2. AI Diagnostic Engine &gt; Google Gemini 2.5 Flash analyzing AST structure...</div>' },
+                { delay: 1400, text: '<div class="text-emerald-400">✔ 2. AI Diagnostic Engine &gt; Fix generated in 0.42s</div>' },
+                { delay: 1800, text: '<div class="text-emerald-400">✔ 3. Syntax Validator &gt; py_compile AST check PASS (0 errors)</div>' },
+                { delay: 2200, text: '<div class="text-emerald-400">✔ 4. Pytest Regression Shield &gt; 15/15 unit tests PASS (1.8s)</div>' },
+                { delay: 2600, text: '<div class="text-emerald-400">✔ 5. Atomic Hot-Patch &gt; app.py.bak backup saved, atomic write OK</div>' },
+                { delay: 3000, text: '<div class="text-emerald-400">✔ 6. Short-Polling Health Check &gt; HTTP 200 OK verified</div>' },
+                { delay: 3400, text: '<div class="text-purple-400 font-bold">✔ 7. Git Branch & GitHub PR &gt; Branch autoheal/fix-live created, PR opened autonomously on GitHub!</div>' },
+                { delay: 3700, text: '<div class="text-emerald-300 font-bold mt-2 p-2 bg-emerald-950/60 border border-emerald-500/40 rounded">🎉 HEALING COMPLETE: Local service restored with zero downtime.</div>' }
+            ];
+
+            steps.forEach(s => {
+                setTimeout(() => {
+                    stream.innerHTML += s.text;
+                }, s.delay);
+            });
         }
 
         // 3. Dynamic State Sync & UI Updater
@@ -987,6 +1111,10 @@ IndexError: list index out of range"></textarea>
             document.getElementById('sidebar-repo-name').textContent = `${activeState.owner}/${activeState.repoName}`;
             document.getElementById('sidebar-target-file').textContent = `${activeState.targetFile} (${activeState.errorType})`;
             document.getElementById('sidebar-pr-dest').textContent = `PR -> ${activeState.branch}`;
+
+            // Local TUI Tab Links
+            const cliEl = document.getElementById('cli-cmd-text');
+            if (cliEl) cliEl.textContent = `git clone ${activeState.repoUrl} && cd ${activeState.repoName} && python self_healing_cli.py start`;
 
             // Hero Simulator
             document.getElementById('sim-target-file').textContent = `${activeState.targetFile}:${activeState.lineNum || 1}`;
