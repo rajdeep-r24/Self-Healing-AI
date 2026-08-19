@@ -148,7 +148,7 @@ class LogWatcherHandler(FileSystemEventHandler):
                 
                 branch_name = local_commit_fix(self.project_root, target_file)
                 if branch_name:
-                    github_push_and_pr(self.project_root, branch_name, target_file, result['explanation'])
+                    github_push_and_pr(self.project_root, branch_name, target_file, result['diagnosis'])
                     
                 print("[HEALER] Recovery successful")
                 
