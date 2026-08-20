@@ -245,16 +245,20 @@
                 </div>
             </div>
 
-            <!-- Auto-Copied Terminal Command Section -->
-            <div class="p-4 bg-black/90 border border-outline-variant/50 rounded-2xl space-y-2">
-                <div class="flex justify-between items-center text-xs font-mono">
-                    <span class="text-on-surface-variant font-semibold">Or paste this 1-line command in your Command Prompt / Terminal:</span>
+            <!-- Auto-Copied Terminal Command Section with Shell Tabs -->
+            <div class="p-4 bg-black/90 border border-outline-variant/50 rounded-2xl space-y-3">
+                <div class="flex flex-wrap justify-between items-center gap-2 text-xs font-mono">
+                    <div class="flex items-center gap-1.5 bg-surface-container-low p-1 rounded-lg border border-outline-variant/40">
+                        <button onclick="setModalShell('pwsh')" id="modal-shell-btn-pwsh" class="px-2.5 py-1 rounded-md bg-primary text-on-primary-fixed font-bold text-[11px] transition-all">PowerShell (Windows)</button>
+                        <button onclick="setModalShell('cmd')" id="modal-shell-btn-cmd" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-white font-medium text-[11px] transition-all">CMD</button>
+                        <button onclick="setModalShell('bash')" id="modal-shell-btn-bash" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-white font-medium text-[11px] transition-all">macOS / Linux</button>
+                    </div>
                     <button onclick="copyModalCliCommand()" class="text-primary hover:underline flex items-center gap-1 font-bold">
                         <span class="material-symbols-outlined text-xs">content_copy</span> Copy Command
                     </button>
                 </div>
                 <div class="bg-surface-container-lowest/90 border border-outline-variant/40 rounded-xl p-3 font-mono text-xs text-primary flex items-center justify-between overflow-x-auto">
-                    <code id="modal-cli-cmd">git clone https://github.com/rajdeep-r24/Self-Healing-AI.git && cd Self-Healing-AI && setup.bat</code>
+                    <code id="modal-cli-cmd">git clone https://github.com/rajdeep-r24/Self-Healing-AI.git; cd Self-Healing-AI; python setup.bat; python watcher.py</code>
                 </div>
             </div>
 
@@ -546,13 +550,20 @@
                             </div>
 
                             <div class="p-4 bg-surface-container-lowest/80 border border-outline-variant/40 rounded-xl space-y-2">
-                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm text-tertiary">content_copy</span> Terminal CLI Command
+                                <div class="flex justify-between items-center flex-wrap gap-2">
+                                    <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-sm text-tertiary">content_copy</span> Terminal CLI Command
+                                    </div>
+                                    <div class="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-outline-variant/40 text-[10px] font-mono">
+                                        <button onclick="setHubShell('pwsh')" id="hub-shell-btn-pwsh" class="px-2 py-0.5 rounded bg-primary text-on-primary-fixed font-bold transition-all">PowerShell</button>
+                                        <button onclick="setHubShell('cmd')" id="hub-shell-btn-cmd" class="px-2 py-0.5 rounded text-on-surface-variant hover:text-white transition-all">CMD</button>
+                                        <button onclick="setHubShell('bash')" id="hub-shell-btn-bash" class="px-2 py-0.5 rounded text-on-surface-variant hover:text-white transition-all">Bash</button>
+                                    </div>
                                 </div>
-                                <p class="text-[11px] text-on-surface-variant">Run in any terminal at the root of your project repository:</p>
+                                <p class="text-[11px] text-on-surface-variant">Run in your terminal at the root of your project directory:</p>
                                 <div class="flex items-center bg-black/80 border border-outline-variant/40 rounded-lg px-3 py-1.5 justify-between font-mono text-xs text-primary">
-                                    <code id="cli-cmd-text">python self_healing_cli.py start</code>
-                                    <button onclick="copyCliCommand()" class="text-white hover:text-primary transition-colors">
+                                    <code id="cli-cmd-text">git clone https://github.com/rajdeep-r24/Self-Healing-AI.git; cd Self-Healing-AI; python watcher.py</code>
+                                    <button onclick="copyCliCommand()" class="text-white hover:text-primary transition-colors ml-2">
                                         <span class="material-symbols-outlined text-sm">content_copy</span>
                                     </button>
                                 </div>
@@ -1186,10 +1197,67 @@ IndexError: list index out of range"></textarea>
             alert(`Downloaded 'launch_autoheal_${repoName}.bat'! Double-click it to clone and start the Sentinel autonomously.`);
         }
 
+        let currentModalShell = 'pwsh';
+        let currentHubShell = 'pwsh';
+
+        function getFormattedCommand(shell, repoUrl, repoName, isModal = false) {
+            const url = repoUrl || "https://github.com/rajdeep-r24/Self-Healing-AI";
+            const name = repoName || "Self-Healing-AI";
+            if (shell === 'pwsh') {
+                return isModal
+                    ? `git clone ${url}; cd ${name}; python setup.bat; python watcher.py`
+                    : `git clone ${url}; cd ${name}; python watcher.py`;
+            } else if (shell === 'cmd') {
+                return isModal
+                    ? `git clone ${url} && cd ${name} && setup.bat && python watcher.py`
+                    : `git clone ${url} && cd ${name} && python watcher.py`;
+            } else { // bash / mac / linux
+                return isModal
+                    ? `git clone ${url} && cd ${name} && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python3 watcher.py`
+                    : `git clone ${url} && cd ${name} && python3 watcher.py`;
+            }
+        }
+
+        function setModalShell(shell) {
+            currentModalShell = shell;
+            ['pwsh', 'cmd', 'bash'].forEach(s => {
+                const btn = document.getElementById(`modal-shell-btn-${s}`);
+                if (btn) {
+                    if (s === shell) {
+                        btn.className = "px-2.5 py-1 rounded-md bg-primary text-on-primary-fixed font-bold text-[11px] transition-all";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-md text-on-surface-variant hover:text-white font-medium text-[11px] transition-all";
+                    }
+                }
+            });
+            const modalCliEl = document.getElementById('modal-cli-cmd');
+            if (modalCliEl) {
+                modalCliEl.textContent = getFormattedCommand(currentModalShell, activeState.repoUrl, activeState.repoName, true);
+            }
+        }
+
+        function setHubShell(shell) {
+            currentHubShell = shell;
+            ['pwsh', 'cmd', 'bash'].forEach(s => {
+                const btn = document.getElementById(`hub-shell-btn-${s}`);
+                if (btn) {
+                    if (s === shell) {
+                        btn.className = "px-2 py-0.5 rounded bg-primary text-on-primary-fixed font-bold transition-all";
+                    } else {
+                        btn.className = "px-2 py-0.5 rounded text-on-surface-variant hover:text-white transition-all";
+                    }
+                }
+            });
+            const cliEl = document.getElementById('cli-cmd-text');
+            if (cliEl) {
+                cliEl.textContent = getFormattedCommand(currentHubShell, activeState.repoUrl, activeState.repoName, false);
+            }
+        }
+
         function copyModalCliCommand() {
             const cmd = document.getElementById('modal-cli-cmd').innerText;
             navigator.clipboard.writeText(cmd).then(() => {
-                alert("Autonomous terminal command copied to clipboard!");
+                alert("PowerShell / Terminal command copied to clipboard!");
             }).catch(() => {
                 prompt("Copy command:", cmd);
             });
@@ -1242,9 +1310,9 @@ IndexError: list index out of range"></textarea>
 
             // Local TUI Tab Links & Modal CLI Command
             const cliEl = document.getElementById('cli-cmd-text');
-            if (cliEl) cliEl.textContent = `git clone ${activeState.repoUrl} && cd ${activeState.repoName} && python self_healing_cli.py start`;
+            if (cliEl) cliEl.textContent = getFormattedCommand(currentHubShell, activeState.repoUrl, activeState.repoName, false);
             const modalCliEl = document.getElementById('modal-cli-cmd');
-            if (modalCliEl) modalCliEl.textContent = `git clone ${activeState.repoUrl} && cd ${activeState.repoName} && setup.bat`;
+            if (modalCliEl) modalCliEl.textContent = getFormattedCommand(currentModalShell, activeState.repoUrl, activeState.repoName, true);
 
             // Hero Simulator
             document.getElementById('sim-target-file').textContent = `${activeState.targetFile}:${activeState.lineNum || 1}`;
