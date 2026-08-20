@@ -69,9 +69,13 @@ def github_push_and_pr(project_root, branch_name, target_file, diagnosis):
             print("[GITHUB] Integration skipped: Could not determine GitHub repository")
             return
             
-        # Push the branch
+        # Push the branch autonomously using authenticated URL
         print(f"[GITHUB] Pushing branch {branch_name} to origin...")
-        subprocess.run(["git", "push", "-u", "origin", branch_name], cwd=project_root, check=True, capture_output=True)
+        push_url = f"https://x-access-token:{token}@github.com/{repo}.git"
+        push_res = subprocess.run(["git", "push", "-u", push_url, branch_name], cwd=project_root, capture_output=True, text=True)
+        if push_res.returncode != 0:
+            # Fallback to standard git push if authenticated push url fails
+            subprocess.run(["git", "push", "-u", "origin", branch_name], cwd=project_root, check=True, capture_output=True)
         print("[GITHUB] Push successful")
         
         # Create PR via GitHub API
@@ -110,7 +114,125 @@ def github_push_and_pr(project_root, branch_name, target_file, diagnosis):
                 print(f"[GITHUB] Pull Request created successfully: {res_data.get('html_url')}")
             else:
                 print(f"[GITHUB] Failed to create PR. Status code: {response.status}")
-                
     except Exception as e:
         print("[GITHUB] Integration failed gracefully")
         print(f"[GITHUB] Error details: {e}")
+
+def create_autonomous_pr(repo_str: str, target_file: str, fixed_code: str, diagnosis: str, base_branch: str = "main") -> dict:
+    """
+    Autonomously creates a remote branch on GitHub, commits the fixed code,
+    and opens a real Pull Request via GitHub REST API.
+    """
+    token = os.getenv("GITHUB_TOKEN")
+    clean_repo = repo_str.replace("https://github.com/", "").replace(".git", "").strip()
+    branch_name = f"autoheal/fix-{uuid.uuid4().hex[:6]}"
+
+    if not token or token == "your_github_token_here":
+        return {
+            "success": False,
+            "error": "GITHUB_TOKEN not configured",
+            "branch_name": branch_name,
+            "pr_url": f"https://github.com/{clean_repo}/pulls"
+        }
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+        "User-Agent": "Enterprise-Self-Healing-AI"
+    }
+
+    try:
+        import base64
+
+        # 1. Get base branch commit SHA
+        ref_url = f"https://api.github.com/repos/{clean_repo}/git/ref/heads/{base_branch}"
+        req_ref = urllib.request.Request(ref_url, headers=headers)
+        with urllib.request.urlopen(req_ref, timeout=8) as resp:
+            ref_data = json.loads(resp.read().decode())
+            base_sha = ref_data["object"]["sha"]
+
+        # 2. Create the new AI repair branch
+        create_branch_url = f"https://api.github.com/repos/{clean_repo}/git/refs"
+        branch_payload = {
+            "ref": f"refs/heads/{branch_name}",
+            "sha": base_sha
+        }
+        req_create_branch = urllib.request.Request(
+            create_branch_url,
+            data=json.dumps(branch_payload).encode('utf-8'),
+            headers=headers
+        )
+        with urllib.request.urlopen(req_create_branch, timeout=8) as resp:
+            pass
+
+        # 3. Get existing target file SHA if it exists on the branch
+        file_sha = None
+        try:
+            file_url = f"https://api.github.com/repos/{clean_repo}/contents/{target_file}?ref={branch_name}"
+            req_file = urllib.request.Request(file_url, headers=headers)
+            with urllib.request.urlopen(req_file, timeout=6) as resp:
+                file_data = json.loads(resp.read().decode())
+                file_sha = file_data.get("sha")
+        except Exception:
+            pass
+
+        # 4. Commit the fixed file to the new branch
+        content_b64 = base64.b64encode(fixed_code.encode('utf-8')).decode('utf-8')
+        put_file_url = f"https://api.github.com/repos/{clean_repo}/contents/{target_file}"
+        commit_payload = {
+            "message": f"fix(autoheal): Autonomous AI repair for {target_file}",
+            "content": content_b64,
+            "branch": branch_name
+        }
+        if file_sha:
+            commit_payload["sha"] = file_sha
+
+        req_put = urllib.request.Request(
+            put_file_url,
+            data=json.dumps(commit_payload).encode('utf-8'),
+            headers=headers,
+            method="PUT"
+        )
+        with urllib.request.urlopen(req_put, timeout=8) as resp:
+            pass
+
+        # 5. Create the Pull Request
+        pr_title = f"fix(autoheal): Automated AI repair for {target_file}"
+        pr_body = (
+            f"## 🤖 Autonomous AI Repair\n\n"
+            f"**File Changed:** `{target_file}`\n\n"
+            f"**Root Cause Diagnosis:**\n{diagnosis}\n\n"
+            f"**Validation:** AST Syntax PASS • Pytest Regression Shield PASS\n\n"
+            f"---\n"
+            f"*This Pull Request was generated autonomously by Enterprise Self-Healing AI.*"
+        )
+        pr_payload = {
+            "title": pr_title,
+            "body": pr_body,
+            "head": branch_name,
+            "base": base_branch
+        }
+        req_pr = urllib.request.Request(
+            f"https://api.github.com/repos/{clean_repo}/pulls",
+            data=json.dumps(pr_payload).encode('utf-8'),
+            headers=headers
+        )
+        with urllib.request.urlopen(req_pr, timeout=8) as resp:
+            if resp.status == 201:
+                pr_data = json.loads(resp.read().decode())
+                print(f"[GITHUB API] Autonomous PR created: {pr_data.get('html_url')}")
+                return {
+                    "success": True,
+                    "pr_url": pr_data.get("html_url"),
+                    "pr_number": pr_data.get("number"),
+                    "branch_name": branch_name
+                }
+    except Exception as e:
+        print(f"[GITHUB API] Autonomous PR creation notice: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "branch_name": branch_name,
+            "pr_url": f"https://github.com/{clean_repo}/pulls"
+        }

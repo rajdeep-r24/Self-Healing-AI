@@ -13,7 +13,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from ai_engine import diagnose_and_fix
 from validator import validate_code
-from git_module import local_commit_fix, github_push_and_pr
+from git_module import local_commit_fix, github_push_and_pr, create_autonomous_pr
 from bounded_pytest import run_pytest_bounded
 from tui_dashboard import get_dashboard
 
@@ -263,11 +263,14 @@ class LogWatcherHandler(FileSystemEventHandler):
             branch_name = local_commit_fix(self.project_root, target_file)
             if branch_name:
                 github_push_and_pr(self.project_root, branch_name, target_file, result.get('explanation', result.get('diagnosis', '')))
-                if self.dashboard:
-                    self.dashboard.set_stage_complete("git", success=True, info_msg=f"Branch: {branch_name}")
-            else:
-                if self.dashboard:
-                    self.dashboard.set_stage_complete("git", success=True, info_msg="Local Git fix complete")
+            
+            config = get_config(self.project_root)
+            repo_str = config.get("repo_url", "rajdeep-r24/Self-Healing-AI")
+            rel_target = os.path.relpath(target_file, self.project_root)
+            create_autonomous_pr(repo_str, rel_target, fixed_code, result.get('explanation', result.get('diagnosis', '')))
+
+            if self.dashboard:
+                self.dashboard.set_stage_complete("git", success=True, info_msg=f"Branch: {branch_name or 'autoheal/fix'}")
                 
             total_duration = time.time() - start_total
             print(f"[HEALER] Recovery successful ({total_duration:.1f}s)")

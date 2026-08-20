@@ -22,8 +22,8 @@ def diagnose_and_fix(traceback_text: str, source_code: str) -> dict:
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set.")
 
-    primary_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
-    fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro")
+    primary_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").replace("GEMINI_MODEL=", "").replace("=", "").strip() or "gemini-2.5-flash-lite"
+    fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro").replace("GEMINI_FALLBACK_MODEL=", "").replace("=", "").strip() or "gemini-2.5-pro"
     demo_mode = os.getenv("SELF_HEALING_DEMO_MODE", "").lower() in ("true", "1", "yes")
 
     client = genai.Client(api_key=api_key)

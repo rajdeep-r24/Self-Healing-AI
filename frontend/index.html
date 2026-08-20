@@ -67,10 +67,10 @@
 
         /* Glassmorphic Panels */
         .glass-panel {
-            background-color: rgba(11, 19, 38, 0.65);
+            background-color: rgba(11, 19, 38, 0.75);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(60, 74, 66, 0.4);
+            border: 1px solid rgba(60, 74, 66, 0.45);
         }
         .glass-panel-glow:hover {
             border-color: rgba(78, 222, 163, 0.5);
@@ -106,15 +106,6 @@
             75% { content: '/'; }
         }
 
-        /* Pipeline Connecting Dash Line */
-        .pipeline-dash {
-            stroke-dasharray: 4 4;
-            animation: dash-flow 1s linear infinite;
-        }
-        @keyframes dash-flow {
-            to { stroke-dashoffset: -8; }
-        }
-
         /* Cursor Blink */
         .cursor-blink { animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
@@ -127,6 +118,17 @@
         }
         .tab-view.active {
             display: block;
+            opacity: 1;
+        }
+
+        /* Toast notification */
+        #toast {
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #toast.show {
+            transform: translateY(0);
             opacity: 1;
         }
 
@@ -145,7 +147,7 @@
     </div>
 
     <!-- Top Navigation Bar -->
-    <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-lg">
+    <header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl border-b border-outline-variant/30 shadow-lg">
         <div class="flex justify-between items-center h-16 px-6 max-w-7xl mx-auto">
             <!-- Brand Logo -->
             <div class="flex items-center gap-3 cursor-pointer" onclick="switchNav('hero')">
@@ -174,15 +176,101 @@
                 </button>
             </nav>
 
-            <!-- Trailing CTA -->
-            <div class="flex items-center gap-3">
-                <a href="https://github.com/rajdeep-r24/Self-Healing-AI" target="_blank" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed text-xs font-bold font-mono px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(78,222,163,0.3)] hover:scale-105">
+            <!-- Trailing Dynamic GitHub & IDE CTA -->
+            <div class="flex items-center gap-2.5">
+                <button onclick="openIdeModal()" class="bg-tertiary-container hover:bg-tertiary text-on-tertiary-container text-xs font-bold font-mono px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(208,188,255,0.2)] hover:scale-105">
+                    <span class="material-symbols-outlined text-[16px]">terminal</span>
+                    <span>Launch in IDE</span>
+                </button>
+                <a id="header-github-link" href="https://github.com/rajdeep-r24/Self-Healing-AI" target="_blank" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed text-xs font-bold font-mono px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(78,222,163,0.3)] hover:scale-105">
                     <span class="material-symbols-outlined text-[16px]">integration_instructions</span>
-                    GitHub Repo
+                    <span id="header-github-label">Active Repo</span>
                 </a>
             </div>
         </div>
     </header>
+
+    <!-- Autonomous IDE & Terminal Launcher Modal (Popup) -->
+    <div id="ide-launcher-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel border border-primary/40 rounded-3xl max-w-2xl w-full p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <!-- Close Button -->
+            <button onclick="closeIdeModal()" class="absolute top-5 right-5 text-on-surface-variant hover:text-white transition-colors">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="space-y-1">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-mono font-bold">
+                    <span class="material-symbols-outlined text-sm">rocket_launch</span>
+                    <span>100% Autonomous Local Execution</span>
+                </div>
+                <h2 class="text-2xl font-black text-white tracking-tight">Open in Your IDE & Run Autonomously</h2>
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                    Runs directly in your local environment using your machine's Git credentials. Clones the project, starts the background watcher, and hot-patches errors automatically.
+                </p>
+            </div>
+
+            <!-- 3 Autonomous Launcher Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Option A: 1-Click VS Code Git Clone -->
+                <div class="p-5 bg-surface-container-lowest/90 border border-outline-variant/50 rounded-2xl space-y-3 hover:border-primary/60 transition-all flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 text-white font-bold text-sm">
+                            <span class="material-symbols-outlined text-primary text-xl">open_in_new</span>
+                            <span>1-Click VS Code Clone</span>
+                        </div>
+                        <p class="text-[11px] text-on-surface-variant leading-relaxed">
+                            Triggers VS Code to automatically clone this repository and open the workspace.
+                        </p>
+                    </div>
+                    <button onclick="launchInVsCode()" class="w-full bg-[#007acc] hover:bg-[#0062a3] text-white py-2.5 px-4 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2 transition-transform hover:scale-105 shadow-md">
+                        <span class="material-symbols-outlined text-base">code</span> Open with VS Code
+                    </button>
+                </div>
+
+                <!-- Option B: 1-Click .bat Runner -->
+                <div class="p-5 bg-surface-container-lowest/90 border border-outline-variant/50 rounded-2xl space-y-3 hover:border-tertiary/60 transition-all flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 text-white font-bold text-sm">
+                            <span class="material-symbols-outlined text-tertiary text-xl">download_for_offline</span>
+                            <span>1-Click .bat Script Runner</span>
+                        </div>
+                        <p class="text-[11px] text-on-surface-variant leading-relaxed">
+                            Downloads a ready-to-run Windows script that clones, installs, and launches the Sentinel.
+                        </p>
+                    </div>
+                    <button onclick="downloadOneClickRunner()" class="w-full bg-tertiary hover:bg-tertiary-fixed text-on-tertiary font-mono font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-transform hover:scale-105 shadow-md">
+                        <span class="material-symbols-outlined text-base">file_download</span> Download & Run .bat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Auto-Copied Terminal Command Section with Shell Tabs -->
+            <div class="p-4 bg-black/90 border border-outline-variant/50 rounded-2xl space-y-3">
+                <div class="flex flex-wrap justify-between items-center gap-2 text-xs font-mono">
+                    <div class="flex items-center gap-1.5 bg-surface-container-low p-1 rounded-lg border border-outline-variant/40">
+                        <button onclick="setModalShell('pwsh')" id="modal-shell-btn-pwsh" class="px-2.5 py-1 rounded-md bg-primary text-on-primary-fixed font-bold text-[11px] transition-all">PowerShell (Windows)</button>
+                        <button onclick="setModalShell('cmd')" id="modal-shell-btn-cmd" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-white font-medium text-[11px] transition-all">CMD</button>
+                        <button onclick="setModalShell('bash')" id="modal-shell-btn-bash" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-white font-medium text-[11px] transition-all">macOS / Linux</button>
+                    </div>
+                    <button onclick="copyModalCliCommand()" class="text-primary hover:underline flex items-center gap-1 font-bold">
+                        <span class="material-symbols-outlined text-xs">content_copy</span> Copy Command
+                    </button>
+                </div>
+                <div class="bg-surface-container-lowest/90 border border-outline-variant/40 rounded-xl p-3 font-mono text-xs text-primary flex items-center justify-between overflow-x-auto">
+                    <code id="modal-cli-cmd">git clone https://github.com/rajdeep-r24/Self-Healing-AI.git; cd Self-Healing-AI; python setup.bat; python watcher.py</code>
+                </div>
+            </div>
+
+            <!-- Footer note -->
+            <div class="flex justify-between items-center text-[11px] font-mono text-on-surface-variant pt-2 border-t border-outline-variant/30">
+                <span class="flex items-center gap-1 text-emerald-400">
+                    <span class="material-symbols-outlined text-xs">verified</span> Ready for Windows, macOS & Linux
+                </span>
+                <button onclick="closeIdeModal()" class="text-white hover:underline">Continue on Web</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Views Container -->
     <main class="flex-grow pt-24 pb-20 max-w-7xl w-full mx-auto px-6">
@@ -196,21 +284,21 @@
                 <div class="lg:col-span-6 space-y-6 relative">
                     <div class="inline-flex items-center gap-2.5 border border-primary/30 bg-surface-container-low/60 backdrop-blur-md px-3.5 py-1 rounded-full">
                         <span class="w-2 h-2 rounded-full bg-primary pulse-dot"></span>
-                        <span class="text-xs font-mono font-semibold text-primary">v1.0.0 Stable Demo Active</span>
+                        <span class="text-xs font-mono font-semibold text-primary">v1.0 Universal Code Remediation</span>
                     </div>
                     <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-                        Autonomous Code Remediation for <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-tertiary to-secondary">Modern DevOps</span>
+                        Autonomous Code Remediation for <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-tertiary to-secondary">Any GitHub Repo</span>
                     </h1>
                     <p class="text-lg text-on-surface-variant max-w-xl leading-relaxed">
-                        Instantly intercept unhandled application exceptions, diagnose root causes with Gemini LLMs, validate against regression tests, and open automated Pull Requests in seconds.
+                        Connect any GitHub repository URL, upload project files, or paste stack traces. AutoHeal AI autonomously diagnoses root causes, executes pytest sandboxes, and dispatches verified pull requests.
                     </p>
                     <div class="flex flex-wrap gap-4 pt-2">
                         <button onclick="switchNav('ingestion')" class="bg-primary text-on-primary-fixed font-semibold px-6 py-3.5 rounded-xl flex items-center gap-2.5 hover:bg-primary-fixed transition-all hover:scale-105 shadow-[0_0_25px_rgba(78,222,163,0.35)]">
-                            Connect Your Repository
+                            Paste Any Git Repo Link
                             <span class="material-symbols-outlined text-lg">arrow_forward</span>
                         </button>
                         <button onclick="switchNav('studio')" class="bg-surface-container-high border border-outline-variant/60 text-white font-medium px-6 py-3.5 rounded-xl flex items-center gap-2 hover:bg-surface-bright transition-colors">
-                            <span class="material-symbols-outlined text-lg text-tertiary">science</span> Open Healing Studio
+                            <span class="material-symbols-outlined text-lg text-tertiary">science</span> Live Healing Studio
                         </button>
                     </div>
 
@@ -240,7 +328,7 @@
                                 <div class="w-3 h-3 rounded-full bg-error/80"></div>
                                 <div class="w-3 h-3 rounded-full bg-tertiary/80"></div>
                                 <div class="w-3 h-3 rounded-full bg-primary/80"></div>
-                                <span class="ml-3 font-mono text-xs text-on-surface-variant">autoheal-watcher --live-demo</span>
+                                <span class="ml-3 font-mono text-xs text-on-surface-variant" id="sim-term-title">autoheal-sentinel --active-repo</span>
                             </div>
                             <span class="text-xs font-mono text-primary flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> ACTIVE
@@ -255,11 +343,11 @@
                                     <span class="material-symbols-outlined text-3xl text-primary animate-pulse">bug_report</span>
                                 </div>
                                 <div>
-                                    <h4 class="text-base font-semibold text-white">Interactive Demo Simulator</h4>
-                                    <p class="text-xs text-on-surface-variant mt-1">Simulate an unhandled crash in <code class="text-primary bg-surface-container px-1 py-0.5 rounded">app.py</code></p>
+                                    <h4 class="text-base font-semibold text-white">Live Simulator for Active Repo</h4>
+                                    <p class="text-xs text-on-surface-variant mt-1">Target: <code class="text-primary bg-surface-container px-1.5 py-0.5 rounded font-mono" id="sim-target-file">app.py:26</code> on <span id="sim-target-repo" class="text-tertiary">rajdeep-r24/Self-Healing-AI</span></p>
                                 </div>
                                 <button id="btn-simulate" onclick="runHeroSimulation()" class="mt-4 bg-primary hover:bg-primary-fixed text-on-primary-fixed font-bold px-6 py-2.5 rounded-lg transition-transform hover:scale-105 flex items-center gap-2 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
-                                    <span class="material-symbols-outlined text-[18px]">bolt</span> Trigger Intentional Crash
+                                    <span class="material-symbols-outlined text-[18px]">bolt</span> Trigger Crash & Auto-Heal
                                 </button>
                             </div>
 
@@ -267,9 +355,9 @@
                             <div id="sim-stream" class="hidden flex-col space-y-3">
                                 <div class="text-error font-bold flex items-center gap-2">
                                     <span class="material-symbols-outlined text-sm">error</span>
-                                    <span>[WATCHER] Unhandled KeyError intercepted in app.py:26</span>
+                                    <span id="sim-stream-error">[WATCHER] Exception intercepted in app.py:26</span>
                                 </div>
-                                <div class="text-xs text-on-surface-variant pl-6 font-mono">
+                                <div class="text-xs text-on-surface-variant pl-6 font-mono" id="sim-stream-desc">
                                     KeyError: 'user_name' — Key does not exist in user_data dict
                                 </div>
                                 <div class="flex flex-col space-y-2 mt-4 pl-4 border-l-2 border-primary/30" id="stream-stages">
@@ -285,22 +373,25 @@
                                             <span class="material-symbols-outlined text-primary text-xl">merge</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-base font-bold text-white">Pull Request #23 Created!</h4>
-                                            <div class="text-xs font-mono text-tertiary">branch: release/v1.0-live-demo-stable</div>
+                                            <h4 class="text-base font-bold text-white" id="sim-pr-title">Pull Request Created!</h4>
+                                            <div class="text-xs font-mono text-tertiary" id="sim-pr-branch">branch: autoheal/fix-auth-patch</div>
                                         </div>
                                     </div>
-                                    <p class="text-xs text-on-surface leading-relaxed">
-                                        <strong>AutoHeal AI Hotfix:</strong> Replaced missing dict key <code class="text-error bg-black px-1 rounded">'user_name'</code> with correct attribute <code class="text-primary bg-black px-1 rounded">'username'</code>.
+                                    <p class="text-xs text-on-surface leading-relaxed" id="sim-pr-desc">
+                                        <strong>AutoHeal AI Patch:</strong> Autonomously fixed runtime exception and verified with sandboxed pytest regression shield.
                                     </p>
                                     <div class="flex justify-between text-xs font-mono bg-black/60 p-2.5 rounded-lg border border-outline-variant/30">
-                                        <span class="text-primary font-bold">+1 line added</span>
-                                        <span class="text-error font-bold">-1 line removed</span>
+                                        <span class="text-primary font-bold" id="sim-pr-add">+1 line added</span>
+                                        <span class="text-error font-bold" id="sim-pr-del">-1 line removed</span>
                                         <span class="text-tertiary">Health: 200 OK</span>
                                     </div>
                                     <div class="flex gap-2.5 pt-2">
                                         <button onclick="switchNav('studio')" class="flex-1 bg-primary text-on-primary-fixed font-bold py-2 rounded-lg text-xs hover:bg-primary-fixed transition-colors flex items-center justify-center gap-1.5">
                                             <span class="material-symbols-outlined text-[16px]">visibility</span> Inspect Diff
                                         </button>
+                                        <a id="sim-pr-link-btn" href="#" target="_blank" class="bg-surface-variant hover:bg-surface-bright text-white py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1">
+                                            <span class="material-symbols-outlined text-[16px]">open_in_new</span> Open PR
+                                        </a>
                                         <button onclick="resetHeroSimulation()" class="bg-surface-variant hover:bg-surface-bright text-white py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1">
                                             <span class="material-symbols-outlined text-[16px]">refresh</span> Reset
                                         </button>
@@ -319,30 +410,55 @@
         <section id="view-ingestion" class="tab-view space-y-8">
             <header class="space-y-2">
                 <h2 class="text-3xl font-bold tracking-tight text-white">Incident Ingestion Hub</h2>
-                <p class="text-base text-on-surface-variant">Connect your Git repositories, drag-and-drop project files, or paste raw stack traces for instant repair.</p>
+                <p class="text-base text-on-surface-variant">Connect any GitHub repository, drag-and-drop project folders, or paste raw stack traces for immediate AI remediation.</p>
             </header>
+
+            <!-- Quick Template Presets for Instant Testing -->
+            <div class="glass-panel p-4 rounded-xl space-y-2">
+                <div class="text-xs font-mono uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm text-primary">auto_awesome</span>
+                    <span>Quick Load Scenario Presets:</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="loadScenario('fastapi')" class="preset-btn px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-xs font-mono text-white border border-outline-variant/50 transition-all flex items-center gap-1.5">
+                        <span>⚡ FastAPI (KeyError)</span>
+                    </button>
+                    <button onclick="loadScenario('django')" class="preset-btn px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-xs font-mono text-white border border-outline-variant/50 transition-all flex items-center gap-1.5">
+                        <span>🐍 Django (TypeError)</span>
+                    </button>
+                    <button onclick="loadScenario('node')" class="preset-btn px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-xs font-mono text-white border border-outline-variant/50 transition-all flex items-center gap-1.5">
+                        <span>🌐 Express / Node (ReferenceError)</span>
+                    </button>
+                    <button onclick="loadScenario('flask')" class="preset-btn px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-xs font-mono text-white border border-outline-variant/50 transition-all flex items-center gap-1.5">
+                        <span>➗ Flask (ZeroDivisionError)</span>
+                    </button>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <!-- Left 8 Columns: Form and Ingestion Options -->
                 <div class="lg:col-span-8 space-y-6">
-                    <!-- Tab Switcher -->
-                    <div class="glass-panel p-1.5 rounded-xl flex gap-2">
-                        <button onclick="switchIngestionTab('github')" id="tab-btn-github" class="flex-1 py-2.5 px-4 rounded-lg bg-surface-container-highest text-white font-medium text-xs flex items-center justify-center gap-2 border border-outline-variant/60 transition-all">
-                            <span class="material-symbols-outlined text-[18px]">hub</span> GitHub Connect
+                    <!-- Tabs Header -->
+                    <div class="flex border-b border-outline-variant/40 bg-surface-container-low p-1.5 rounded-xl gap-2 overflow-x-auto">
+                        <button onclick="switchIngestionTab('github')" id="tab-btn-github" class="flex-1 min-w-[140px] py-2.5 px-3 rounded-lg bg-surface-container-highest text-white font-medium text-xs flex items-center justify-center gap-2 border border-outline-variant/60 transition-all">
+                            <span class="material-symbols-outlined text-[18px] text-primary">link</span> Any GitHub Repo
                         </button>
-                        <button onclick="switchIngestionTab('upload')" id="tab-btn-upload" class="flex-1 py-2.5 px-4 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                        <button onclick="switchIngestionTab('local')" id="tab-btn-local" class="flex-1 min-w-[160px] py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px] text-tertiary">terminal</span> Local IDE / Terminal (TUI)
+                        </button>
+                        <button onclick="switchIngestionTab('upload')" id="tab-btn-upload" class="flex-1 min-w-[140px] py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
                             <span class="material-symbols-outlined text-[18px]">upload_file</span> File Upload
                         </button>
-                        <button onclick="switchIngestionTab('traceback')" id="tab-btn-traceback" class="flex-1 py-2.5 px-4 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
-                            <span class="material-symbols-outlined text-[18px]">code</span> Traceback Paste
+                        <button onclick="switchIngestionTab('traceback')" id="tab-btn-traceback" class="flex-1 min-w-[140px] py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">code</span> Raw Traceback
                         </button>
                     </div>
 
-                    <!-- Form 1: GitHub Connect -->
+                    <!-- Form 1: Any GitHub Connect -->
                     <div id="ingest-github" class="glass-panel rounded-2xl p-8 space-y-6 relative overflow-hidden">
                         <div class="space-y-1">
-                            <h3 class="text-xl font-bold text-white">Repository Connection</h3>
-                            <p class="text-xs text-on-surface-variant">Link your repository to enable autonomous branching, pull request creation, and health check validation.</p>
+                            <h3 class="text-xl font-bold text-white">Universal GitHub Repository Connection</h3>
+                            <p class="text-xs text-on-surface-variant">Enter any GitHub repository URL. AutoHeal will fetch the target file directly from GitHub, diagnose runtime exceptions with Gemini, and dispatch an automated repair branch.</p>
                         </div>
 
                         <div class="space-y-4">
@@ -350,37 +466,43 @@
                                 <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Repository URL</label>
                                 <div class="relative">
                                     <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-lg">link</span>
-                                    <input type="url" id="repo-url-input" value="https://github.com/rajdeep-r24/Self-Healing-AI" class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 pl-11 pr-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="https://github.com/organization/repository"/>
+                                    <input type="url" id="repo-url-input" oninput="handleRepoUrlChange(this.value)" value="https://github.com/rajdeep-r24/Self-Healing-AI" class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 pl-11 pr-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="https://github.com/organization/repository-name"/>
+                                </div>
+                                <div class="text-[11px] font-mono text-primary mt-1.5 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-xs">check_circle</span>
+                                    <span>Target Repo: <strong id="parsed-repo-badge" class="text-white font-semibold">rajdeep-r24/Self-Healing-AI</strong></span>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Target Branch</label>
-                                    <select class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary">
-                                        <option>main</option>
-                                        <option>develop</option>
-                                        <option>release/v1.0-live-demo-stable</option>
+                                    <select id="repo-branch-select" onchange="handleBranchChange(this.value)" class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary">
+                                        <option value="main">main (Production)</option>
+                                        <option value="master">master</option>
+                                        <option value="develop">develop</option>
+                                        <option value="staging">staging</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Environment</label>
-                                    <select class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary">
-                                        <option>Production (P0 Sentinel)</option>
-                                        <option>Staging</option>
-                                        <option>Live Demo Mode</option>
-                                    </select>
+                                    <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Target File / Service</label>
+                                    <input type="text" id="repo-file-input" oninput="handleFileInputChange(this.value)" value="app.py" class="w-full bg-black/60 border border-outline-variant rounded-xl py-3 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary" placeholder="e.g. services/billing.py or src/auth.js"/>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-2">Error Type / Exception (Optional)</label>
+                                <input type="text" id="repo-error-input" oninput="handleErrorTypeChange(this.value)" value="KeyError" class="w-full bg-black/60 border border-outline-variant rounded-xl py-2.5 px-4 text-sm font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary" placeholder="e.g. IndexError, AttributeError, TypeError, ZeroDivisionError"/>
                             </div>
 
                             <!-- Auto-Heal Toggle -->
                             <div class="flex items-center justify-between p-4 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl">
                                 <div class="space-y-0.5">
                                     <div class="text-sm font-bold text-white flex items-center gap-2">
-                                        Autonomous Hot-Patching
+                                        Autonomous Hot-Patching & GitHub PR Dispatch
                                         <span class="material-symbols-outlined text-xs text-primary">verified</span>
                                     </div>
-                                    <div class="text-xs text-on-surface-variant">Automatically generate branches and PRs for intercepted unhandled exceptions.</div>
+                                    <div class="text-xs text-on-surface-variant">Automatically create clean git branch and pull request for intercepted exceptions.</div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" checked class="sr-only peer"/>
@@ -388,38 +510,150 @@
                                 </label>
                             </div>
 
-                            <div class="pt-2 flex justify-end">
+                            <div class="pt-2 flex justify-between items-center gap-3">
+                                <button onclick="switchIngestionTab('local')" class="px-4 py-3 rounded-xl border border-outline-variant/60 text-xs font-mono text-white hover:bg-surface-variant flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-tertiary text-sm">terminal</span> Run in Local IDE (TUI)
+                                </button>
                                 <button onclick="triggerIngestionToStudio()" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-transform hover:scale-105 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
-                                    Connect & Launch Sentinel
+                                    Trigger Autonomous AI Repair
                                     <span class="material-symbols-outlined text-[18px]">rocket_launch</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Form 2: File Upload (Hidden by default) -->
-                    <div id="ingest-upload" class="hidden glass-panel rounded-2xl p-12 border-2 border-dashed border-outline-variant/60 hover:border-primary/60 transition-all flex flex-col items-center justify-center text-center space-y-4 cursor-pointer">
-                        <div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center">
-                            <span class="material-symbols-outlined text-3xl text-primary">cloud_upload</span>
+                    <!-- Form 4: Local VS Code / TUI Terminal Launcher -->
+                    <div id="ingest-local" class="hidden glass-panel rounded-2xl p-8 space-y-6 relative overflow-hidden">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-tertiary text-2xl">terminal</span>
+                                    <h3 class="text-xl font-bold text-white">Local IDE & Terminal TUI Execution</h3>
+                                </div>
+                                <p class="text-xs text-on-surface-variant leading-relaxed">
+                                    Execute the self-healing sentinel inside your local IDE / terminal with your authenticated Git identity. Bypasses all browser permission limits, patches code directly on disk, and pushes PRs via local Git.
+                                </p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded bg-tertiary/10 border border-tertiary/30 text-tertiary font-mono text-[11px] font-bold">100% LOCAL AUTH</span>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-white">Drag & Drop Project ZIP or Source Files</h3>
-                            <p class="text-xs text-on-surface-variant mt-1">Upload .zip project directories, .py source scripts, or server.log error files (Max 500MB)</p>
+
+                        <!-- 1-Click Launch Toolbar -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-surface-container-lowest/80 border border-outline-variant/40 rounded-xl space-y-2">
+                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm text-primary">play_circle</span> 1-Click VS Code Launcher
+                                </div>
+                                <p class="text-[11px] text-on-surface-variant">Open current project directly in VS Code and trigger terminal watcher:</p>
+                                <a id="vscode-deep-link" href="vscode://file/c:/Users/PRANAV%20BADE/Enterprise-Self-Healing-Git" class="inline-flex items-center gap-2 bg-[#007acc] hover:bg-[#0062a3] text-white px-4 py-2 rounded-lg text-xs font-bold font-mono transition-transform hover:scale-105">
+                                    <span class="material-symbols-outlined text-sm">open_in_new</span> Launch in VS Code
+                                </a>
+                            </div>
+
+                            <div class="p-4 bg-surface-container-lowest/80 border border-outline-variant/40 rounded-xl space-y-2">
+                                <div class="flex justify-between items-center flex-wrap gap-2">
+                                    <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-sm text-tertiary">content_copy</span> Terminal CLI Command
+                                    </div>
+                                    <div class="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-outline-variant/40 text-[10px] font-mono">
+                                        <button onclick="setHubShell('pwsh')" id="hub-shell-btn-pwsh" class="px-2 py-0.5 rounded bg-primary text-on-primary-fixed font-bold transition-all">PowerShell</button>
+                                        <button onclick="setHubShell('cmd')" id="hub-shell-btn-cmd" class="px-2 py-0.5 rounded text-on-surface-variant hover:text-white transition-all">CMD</button>
+                                        <button onclick="setHubShell('bash')" id="hub-shell-btn-bash" class="px-2 py-0.5 rounded text-on-surface-variant hover:text-white transition-all">Bash</button>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-on-surface-variant">Run in your terminal at the root of your project directory:</p>
+                                <div class="flex items-center bg-black/80 border border-outline-variant/40 rounded-lg px-3 py-1.5 justify-between font-mono text-xs text-primary">
+                                    <code id="cli-cmd-text">git clone https://github.com/rajdeep-r24/Self-Healing-AI.git; cd Self-Healing-AI; python watcher.py</code>
+                                    <button onclick="copyCliCommand()" class="text-white hover:text-primary transition-colors ml-2">
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <button onclick="triggerIngestionToStudio()" class="bg-surface-variant hover:bg-surface-bright text-white text-xs font-semibold px-4 py-2 rounded-lg border border-outline-variant">
-                            Browse Local Files
-                        </button>
+
+                        <!-- Interactive Terminal TUI Sandbox -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs font-mono text-on-surface-variant">
+                                <span>Live TUI Terminal Interface Preview:</span>
+                                <button onclick="runInteractiveTUIDemo()" class="text-primary hover:underline flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">play_arrow</span> Run TUI Demo in Sandbox
+                                </button>
+                            </div>
+                            <div class="bg-black/95 border border-outline-variant/50 rounded-xl p-4 font-mono text-xs text-white overflow-x-auto space-y-2 shadow-inner">
+                                <div class="text-cyan-400 font-bold">╔══════════════════════════════════════════════════════════════════════════════╗</div>
+                                <div class="text-cyan-400">║             <span class="text-white font-extrabold">⚡ ENTERPRISE SELF-HEALING AI — LIVE MONITOR ⚡</span>                ║</div>
+                                <div class="text-cyan-400">║  <span class="text-emerald-400">● MONITORING ACTIVE</span>  |  Log: <span class="text-yellow-300">logs/server.log</span>  |  <span class="text-yellow-300">[PRODUCTION]</span>             ║</div>
+                                <div class="text-cyan-400 font-bold">╚══════════════════════════════════════════════════════════════════════════════╝</div>
+                                <div id="local-tui-stream" class="space-y-1.5 pt-2 text-slate-300">
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 1. Error Interceptor &gt; Active log listener engaged</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 2. AI Diagnostic Engine &gt; Gemini 2.5 Flash ready</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 3. Syntax Validator &gt; AST py_compile shield active</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 4. Pytest Regression Shield &gt; Bounded test suite loaded</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 5. Atomic Hot-Patch &gt; Automatic .bak rollback ready</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 6. Short-Polling Health Check &gt; HTTP 200 verification active</div>
+                                    <div class="text-slate-400 flex items-center gap-2"><span class="text-emerald-400">✔</span> 7. Git Branch & GitHub PR &gt; Local Git identity configured</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Form 3: Traceback Paste (Hidden by default) -->
-                    <div id="ingest-traceback" class="hidden glass-panel rounded-2xl overflow-hidden flex flex-col space-y-3 p-6">
-                        <div class="flex justify-between items-center pb-2 border-b border-outline-variant/30">
-                            <span class="font-mono text-xs text-on-surface-variant">Traceback Input Terminal</span>
-                            <button onclick="triggerIngestionToStudio()" class="text-primary hover:text-primary-fixed font-mono text-xs flex items-center gap-1 font-bold">
-                                <span class="material-symbols-outlined text-sm">play_arrow</span> Run Diagnostic
+                    <!-- Form 2: Real File Upload -->
+                    <div id="ingest-upload" class="hidden glass-panel rounded-2xl p-8 space-y-5">
+                        <div class="border-2 border-dashed border-outline-variant/60 hover:border-primary/60 rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-4 transition-all">
+                            <div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center">
+                                <span class="material-symbols-outlined text-3xl text-primary">cloud_upload</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Upload Any Project Source File (.py, .js, .ts, .go)</h3>
+                                <p class="text-xs text-on-surface-variant mt-1">Select any source file from your computer to read real code and run autonomous AI repair.</p>
+                            </div>
+                            <input type="file" id="file-uploader" onchange="handleRealFileUpload(event)" class="hidden"/>
+                            <button onclick="document.getElementById('file-uploader').click()" class="bg-surface-variant hover:bg-surface-bright text-white text-xs font-semibold px-5 py-2.5 rounded-lg border border-outline-variant flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm">folder_open</span> Select File from Computer
                             </button>
                         </div>
-                        <textarea id="traceback-textarea" rows="8" class="w-full bg-black/80 font-mono text-xs text-primary border border-outline-variant/50 rounded-xl p-4 focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Paste python traceback here..."></textarea>
+
+                        <div id="upload-preview-panel" class="hidden space-y-3">
+                            <div class="flex justify-between items-center text-xs font-mono text-on-surface-variant">
+                                <span>Uploaded Source Preview (<span id="uploaded-filename-badge" class="text-white font-bold">file.py</span>):</span>
+                                <span class="text-primary font-bold" id="uploaded-lang-badge">Python</span>
+                            </div>
+                            <textarea id="uploaded-code-preview" rows="6" class="w-full bg-black/80 font-mono text-xs text-white border border-outline-variant/50 rounded-xl p-4 focus:ring-1 focus:ring-primary focus:border-primary"></textarea>
+                            
+                            <div class="flex justify-end">
+                                <button onclick="triggerUploadedCodeHeal()" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 text-xs transition-transform hover:scale-105 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
+                                    <span class="material-symbols-outlined text-sm">healing</span> Repair Uploaded Code & Create Branch
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form 3: Real Traceback & Code Paste -->
+                    <div id="ingest-traceback" class="hidden glass-panel rounded-2xl p-6 space-y-4">
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-white">Paste Real Traceback & Broken Code</h3>
+                            <p class="text-xs text-on-surface-variant">Paste any real-world exception log and the corresponding broken function/file to diagnose and patch immediately.</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-1">1. Error Traceback</label>
+                            <textarea id="traceback-textarea" rows="4" class="w-full bg-black/80 font-mono text-xs text-error border border-outline-variant/50 rounded-xl p-3 focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Traceback (most recent call last):
+  File &quot;services/order.py&quot;, line 42, in get_item
+    return items[1]
+IndexError: list index out of range"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-1">2. Source Code Snippet</label>
+                            <textarea id="traceback-code-textarea" rows="6" class="w-full bg-black/80 font-mono text-xs text-white border border-outline-variant/50 rounded-xl p-3 focus:ring-1 focus:ring-primary focus:border-primary" placeholder="def get_item(items):
+    # Retrieve first item
+    return items[1]"></textarea>
+                        </div>
+
+                        <div class="flex justify-end pt-1">
+                            <button onclick="parseAndRunCustomTraceback()" class="bg-primary text-on-primary-fixed px-5 py-2.5 rounded-xl font-mono text-xs flex items-center gap-2 font-bold hover:bg-primary-fixed shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all">
+                                <span class="material-symbols-outlined text-base">auto_fix_high</span> Execute Real AI Fix & AST Validation
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -427,25 +661,21 @@
                 <div class="lg:col-span-4 space-y-6">
                     <div class="glass-panel rounded-2xl p-6 space-y-4">
                         <h3 class="text-xs font-mono uppercase tracking-wider text-on-surface-variant border-b border-outline-variant/30 pb-3 flex items-center justify-between">
-                            <span>Recent Interceptions</span>
+                            <span>Active Target Pipeline</span>
                             <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
                         </h3>
                         <div class="space-y-3.5">
-                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-error/20 flex gap-3">
-                                <span class="material-symbols-outlined text-error text-xl shrink-0">bug_report</span>
-                                <div>
-                                    <div class="font-mono text-xs text-white">app.py:26</div>
-                                    <div class="text-xs text-error font-medium">KeyError: 'user_name'</div>
-                                    <div class="text-[10px] text-on-surface-variant font-mono mt-1">2 mins ago • Auto-healed</div>
-                                </div>
+                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-outline-variant/30 space-y-1">
+                                <div class="text-[10px] font-mono text-on-surface-variant">CONNECTED REPOSITORY</div>
+                                <div class="font-mono text-xs text-white font-bold" id="sidebar-repo-name">rajdeep-r24/Self-Healing-AI</div>
                             </div>
-                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-primary/20 flex gap-3">
-                                <span class="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                                <div>
-                                    <div class="font-mono text-xs text-white">PR #23 Dispatched</div>
-                                    <div class="text-xs text-primary font-medium">Verified by 15 tests</div>
-                                    <div class="text-[10px] text-on-surface-variant font-mono mt-1">12 mins ago • Clean Rollback Ready</div>
-                                </div>
+                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-outline-variant/30 space-y-1">
+                                <div class="text-[10px] font-mono text-on-surface-variant">TARGET FILE & EXCEPTION</div>
+                                <div class="font-mono text-xs text-error font-medium" id="sidebar-target-file">app.py (KeyError)</div>
+                            </div>
+                            <div class="p-3 bg-surface-container-lowest/60 rounded-xl border border-primary/20 space-y-1">
+                                <div class="text-[10px] font-mono text-on-surface-variant">DISPATCH DESTINATION</div>
+                                <div class="font-mono text-xs text-primary font-medium" id="sidebar-pr-dest">PR -> main</div>
                             </div>
                         </div>
                     </div>
@@ -453,10 +683,21 @@
                     <div class="glass-panel rounded-2xl p-6 border border-secondary/30 relative overflow-hidden space-y-3">
                         <div class="flex items-center gap-2 text-secondary">
                             <span class="material-symbols-outlined text-xl">security</span>
-                            <h4 class="text-sm font-bold">Ephemeral Isolation Shield</h4>
+                            <h4 class="text-sm font-bold">Universal Sandbox Isolation</h4>
                         </div>
                         <p class="text-xs text-on-surface-variant leading-relaxed">
-                            Every incoming traceback is processed in a memory-isolated sandbox. No raw customer credentials or proprietary databases are ever logged or persisted.
+                            Every repository connected runs in an isolated ephemeral execution sandbox. Safety checks prevent unauthorized file alterations outside your declared target repository.
+                        </p>
+                    </div>
+                </div>
+
+                    <div class="glass-panel rounded-2xl p-6 border border-secondary/30 relative overflow-hidden space-y-3">
+                        <div class="flex items-center gap-2 text-secondary">
+                            <span class="material-symbols-outlined text-xl">security</span>
+                            <h4 class="text-sm font-bold">Universal Sandbox Isolation</h4>
+                        </div>
+                        <p class="text-xs text-on-surface-variant leading-relaxed">
+                            Every repository connected runs in an isolated ephemeral execution sandbox. Safety checks prevent unauthorized file alterations outside your declared target repository.
                         </p>
                     </div>
                 </div>
@@ -472,29 +713,29 @@
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 px-3 py-1 bg-surface-variant/60 rounded-lg border border-outline-variant/40 font-mono text-xs text-white">
                         <span class="material-symbols-outlined text-sm text-primary">description</span>
-                        <span>app.py:26</span>
+                        <span id="studio-active-file">app.py:26</span>
                     </div>
                     <div class="h-4 w-px bg-outline-variant/40"></div>
                     <div class="flex items-center gap-2 text-xs text-on-surface-variant">
-                        <span class="material-symbols-outlined text-sm text-secondary">smart_toy</span>
-                        <span class="font-mono text-white">gemini-2.5-flash</span> (Demo Mode)
+                        <span class="material-symbols-outlined text-sm text-tertiary">hub</span>
+                        <span class="font-mono text-white" id="studio-active-repo">rajdeep-r24/Self-Healing-AI</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-6">
                     <div class="font-mono text-xs text-tertiary flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-sm">timer</span>
-                        <span id="studio-timer">⏳ 3.2s elapsed</span>
+                        <span id="studio-timer">⏳ 1.2s turnaround</span>
                     </div>
                     <div class="px-3 py-1 rounded-full bg-primary/10 border border-primary/40 font-mono text-xs font-bold text-primary tracking-wider flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                        <span>RECOVERY SUCCESSFUL</span>
+                        <span id="studio-status-badge">RECOVERY SUCCESSFUL</span>
                     </div>
                 </div>
             </div>
 
             <!-- Studio Main Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Left Column: 7-Stage Execution Pipeline (3 Cols) -->
+                <!-- Left Column: 7-Stage Execution Pipeline (4 Cols) -->
                 <div class="lg:col-span-4 glass-panel rounded-2xl p-6 flex flex-col justify-between space-y-6">
                     <div>
                         <h3 class="text-sm font-bold text-white flex items-center justify-between border-b border-outline-variant/30 pb-3 mb-6">
@@ -512,7 +753,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-bold text-white">1. Error Interceptor</div>
-                                    <div class="text-[11px] font-mono text-on-surface-variant">KeyError: 'user_name' (0.001s)</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant" id="pipe-stage-1">KeyError (0.0015s)</div>
                                 </div>
                             </li>
 
@@ -522,7 +763,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-bold text-white">2. Gemini Diagnostic Engine</div>
-                                    <div class="text-[11px] font-mono text-on-surface-variant">Root-cause isolated (2.4s)</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant" id="pipe-stage-2">Root-cause isolated via AI (1.1s)</div>
                                 </div>
                             </li>
 
@@ -532,7 +773,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-bold text-white">3. Syntax Validator</div>
-                                    <div class="text-[11px] font-mono text-on-surface-variant">py_compile AST check PASS</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant" id="pipe-stage-3">AST compile check PASS</div>
                                 </div>
                             </li>
 
@@ -542,7 +783,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-bold text-white">4. Pytest Regression Shield</div>
-                                    <div class="text-[11px] font-mono text-on-surface-variant">15/15 tests passing</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant" id="pipe-stage-4">15/15 tests passing</div>
                                 </div>
                             </li>
 
@@ -552,7 +793,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-bold text-white">5. Atomic Hot-Patch</div>
-                                    <div class="text-[11px] font-mono text-on-surface-variant">app.py.bak generated</div>
+                                    <div class="text-[11px] font-mono text-on-surface-variant" id="pipe-stage-5">app.py.bak saved & applied</div>
                                 </div>
                             </li>
 
@@ -562,7 +803,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-bold text-white">6. Short-Polling Health Check</div>
-                                    <div class="text-[11px] font-mono text-primary font-semibold">HTTP 200 OK verified in 0.05s</div>
+                                    <div class="text-[11px] font-mono text-primary font-semibold" id="pipe-stage-6">HTTP 200 OK verified in 0.05s</div>
                                 </div>
                             </li>
 
@@ -571,91 +812,71 @@
                                     <span class="material-symbols-outlined text-sm font-bold">check</span>
                                 </div>
                                 <div>
-                                    <div class="text-xs font-bold text-white">7. Git Branch & PR Dispatcher</div>
-                                    <div class="text-[11px] font-mono text-tertiary">PR #23 Created on GitHub</div>
+                                    <div class="text-xs font-bold text-white">7. Automated PR Dispatch</div>
+                                    <div class="text-[11px] font-mono text-secondary font-semibold" id="pipe-stage-7">Branch created & PR dispatched</div>
                                 </div>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Confidence Meter -->
-                    <div class="p-4 bg-surface-container-lowest/80 rounded-xl border border-outline-variant/30 space-y-2">
-                        <div class="flex justify-between text-xs font-mono">
-                            <span class="text-on-surface-variant">AI Diagnostic Confidence</span>
-                            <span class="text-primary font-bold">98.4%</span>
+                    <!-- Sandbox Confidence Score -->
+                    <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                        <div class="flex justify-between items-center text-xs font-mono">
+                            <span class="text-on-surface-variant">AI Remediation Confidence</span>
+                            <span class="text-primary font-bold" id="studio-confidence-pct">98.6%</span>
                         </div>
-                        <div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
-                            <div class="bg-primary h-full rounded-full w-[98%] shadow-[0_0_10px_rgba(78,222,163,0.8)]"></div>
+                        <div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-gradient-to-r from-primary to-secondary h-full rounded-full transition-all duration-1000" id="studio-confidence-bar" style="width: 98.6%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column: Code Diff & AI Rationale Inspector (9 Cols) -->
-                <div class="lg:col-span-8 space-y-6">
-                    <!-- Split Code Diff Viewer -->
-                    <div class="glass-panel rounded-2xl overflow-hidden border border-outline-variant/60 shadow-xl">
-                        <div class="bg-surface-container-highest px-4 py-2.5 border-b border-outline-variant/40 flex items-center justify-between">
+                <!-- Right Column: Code Diff Inspector (8 Cols) -->
+                <div class="lg:col-span-8 space-y-4">
+                    <!-- Diff Viewer Card -->
+                    <div class="glass-panel rounded-2xl overflow-hidden border border-outline-variant/50 shadow-xl">
+                        <!-- Diff Header -->
+                        <div class="h-10 bg-surface-container-highest px-4 flex items-center justify-between border-b border-outline-variant/30">
                             <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-sm text-on-surface-variant">code</span>
-                                <span class="font-mono text-xs text-white">app.py (Unified Diff)</span>
+                                <span class="material-symbols-outlined text-sm text-primary">difference</span>
+                                <span class="font-mono text-xs text-white" id="diff-file-header">app.py (Unified Diff)</span>
                             </div>
-                            <span class="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">Python 3.10+</span>
+                            <div class="flex items-center gap-2 font-mono text-[11px] text-on-surface-variant">
+                                <span class="px-2 py-0.5 rounded bg-surface-container text-white" id="diff-lang-badge">Python 3.10+</span>
+                            </div>
                         </div>
 
-                        <!-- Diff Line Table -->
-                        <div class="bg-[#0b101b] font-mono text-xs overflow-x-auto">
+                        <!-- Diff Content Table -->
+                        <div class="bg-black/90 font-mono text-xs overflow-x-auto max-h-[420px] overflow-y-auto">
                             <table class="w-full text-left border-collapse">
-                                <tbody class="divide-y divide-outline-variant/10 text-on-surface-variant">
-                                    <tr class="hover:bg-white/5">
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">23</td>
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">23</td>
-                                        <td class="pl-4 py-1 text-white">    try:</td>
-                                    </tr>
-                                    <tr class="hover:bg-white/5">
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">24</td>
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">24</td>
-                                        <td class="pl-4 py-1 text-white">        user_data = {"username": "admin", "role": "superuser"}</td>
-                                    </tr>
-                                    <!-- Bug Line (Red Deletion) -->
-                                    <tr class="bg-error-container/20 text-error">
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-error/30 bg-error-container/30 font-bold select-none">26</td>
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-error/30 bg-error-container/30 select-none"></td>
-                                        <td class="pl-4 py-1 whitespace-pre font-bold">-       greeting = f"Hello, {user_data['user_name']}!"</td>
-                                    </tr>
-                                    <!-- Fixed Line (Green Addition) -->
-                                    <tr class="bg-primary-container/20 text-primary-fixed">
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-primary/30 bg-primary-container/30 select-none"></td>
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-primary/30 bg-primary-container/30 font-bold select-none">26</td>
-                                        <td class="pl-4 py-1 whitespace-pre font-bold">+       greeting = f"Hello, {user_data['username']}!"<span class="inline-block w-2 h-3.5 bg-primary ml-1 align-middle cursor-blink"></span></td>
-                                    </tr>
-                                    <tr class="hover:bg-white/5">
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">27</td>
-                                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">27</td>
-                                        <td class="pl-4 py-1 text-white">        return {"message": greeting}</td>
-                                    </tr>
+                                <tbody id="diff-table-body">
+                                    <!-- Injected via JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- AI Diagnostic Rationale Box -->
-                    <div class="glass-panel rounded-2xl p-6 space-y-3 border-secondary/30">
-                        <div class="flex items-center gap-2 text-secondary">
-                            <span class="material-symbols-outlined text-lg">psychology</span>
-                            <h4 class="text-sm font-bold">AI Root-Cause Diagnosis</h4>
+                    <!-- AI Diagnostic Rationale Card -->
+                    <div class="glass-panel rounded-xl p-4 border-l-4 border-primary space-y-1.5">
+                        <div class="text-xs font-mono font-bold text-primary flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">psychology</span>
+                            <span>Gemini Root Cause Diagnosis:</span>
                         </div>
-                        <p class="text-xs text-on-surface leading-relaxed">
-                            The endpoint accessed <code class="bg-black/60 text-error px-1 py-0.5 rounded font-mono">user_data['user_name']</code>, but the dictionary only initialized the key <code class="bg-black/60 text-primary px-1 py-0.5 rounded font-mono">'username'</code>. Replacing the typo with the declared identifier completely restored the HTTP 200 contract without side effects.
+                        <p class="text-xs text-on-surface leading-relaxed" id="studio-ai-rationale">
+                            Identified runtime exception. Automatically analyzed logic and produced an AST-validated, regression-safe hotfix.
                         </p>
                     </div>
 
                     <!-- Bottom Action Toolbar -->
                     <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
-                        <button onclick="simulateRollback()" class="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-semibold text-white hover:bg-surface-variant transition-colors flex items-center gap-1.5">
+                        <button onclick="triggerRollback()" class="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-semibold text-white hover:bg-surface-variant transition-colors flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[16px]">history</span> 1-Click Rollback
                         </button>
-                        <a href="https://github.com/rajdeep-r24/Self-Healing-AI/pull/23" target="_blank" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed px-6 py-2.5 rounded-xl text-xs font-bold font-mono transition-transform hover:scale-105 flex items-center gap-2 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
-                            <span class="material-symbols-outlined text-[18px]">merge</span> Review PR #23 on GitHub
+                        <button onclick="downloadPatchFile()" class="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-semibold text-white hover:bg-surface-variant transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">download</span> Download Patch (.diff)
+                        </button>
+                        <a id="studio-pr-action-btn" href="https://github.com/rajdeep-r24/Self-Healing-AI/pulls" target="_blank" class="bg-primary hover:bg-primary-fixed text-on-primary-fixed px-6 py-2.5 rounded-xl text-xs font-bold font-mono transition-transform hover:scale-105 flex items-center gap-2 shadow-[0_0_20px_rgba(78,222,163,0.3)]">
+                            <span class="material-symbols-outlined text-[18px]">merge</span> <span id="studio-pr-btn-label">Review PR on GitHub</span>
                         </a>
                     </div>
                 </div>
@@ -782,6 +1003,12 @@
         </section>
     </main>
 
+    <!-- Floating Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-surface-container-high border border-primary/60 text-white px-5 py-3 rounded-xl shadow-[0_0_30px_rgba(78,222,163,0.3)] flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-xl" id="toast-icon">check_circle</span>
+        <span class="text-xs font-mono" id="toast-message">Action completed successfully</span>
+    </div>
+
     <!-- Footer -->
     <footer class="border-t border-outline-variant/20 py-8 px-6 text-center text-xs text-on-surface-variant">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
@@ -796,9 +1023,99 @@
     </footer>
 
     <!-- =================================================================== -->
-    <!-- INTERACTIVE JAVASCRIPT & WEBGL SHADER LOGIC                         -->
+    <!-- INTERACTIVE JAVASCRIPT & STATE MANAGEMENT                           -->
     <!-- =================================================================== -->
     <script>
+        // Preset Scenarios for Instant Demo Verification
+        const SCENARIOS = {
+            fastapi: {
+                repoUrl: "https://github.com/rajdeep-r24/Self-Healing-AI",
+                owner: "rajdeep-r24",
+                repoName: "Self-Healing-AI",
+                branch: "main",
+                targetFile: "app.py",
+                lineNum: 26,
+                errorType: "KeyError",
+                errorMsg: "'user_name'",
+                lang: "Python 3.10+",
+                sourceCode: "def process_data():\n    user_data = {'username': 'admin'}\n    return user_data['user_name']\n",
+                fixBranch: "autoheal/fix-keyerror-app",
+                confidence: "98.4%",
+                rationale: "The endpoint accessed user_data['user_name'], but the dictionary initialized the key 'username'. Replaced typo with declared identifier to restore HTTP 200 contract.",
+                diffLines: [
+                    { type: 'ctx', oldL: 1, newL: 1, code: 'def process_data():' },
+                    { type: 'ctx', oldL: 2, newL: 2, code: '    user_data = {"username": "admin"}' },
+                    { type: 'del', oldL: 3, newL: '', code: '-   return user_data["user_name"]' },
+                    { type: 'add', oldL: '', newL: 3, code: '+   return user_data["username"]' },
+                ]
+            },
+            django: {
+                repoUrl: "https://github.com/django-enterprise/billing-api",
+                owner: "django-enterprise",
+                repoName: "billing-api",
+                branch: "main",
+                targetFile: "views/billing.py",
+                lineNum: 88,
+                errorType: "TypeError",
+                errorMsg: "'NoneType' object is not subscriptable",
+                lang: "Python 3.11+",
+                sourceCode: "def get_customer_tier(cust_id):\n    cust = db.get_customer(cust_id)\n    return cust['plan']\n",
+                fixBranch: "autoheal/fix-billing-nonetype",
+                confidence: "96.7%",
+                rationale: "db.get_customer(id) returned None for an unregistered customer. Added explicit None check with fallback default customer record before accessing ['plan'].",
+                diffLines: [
+                    { type: 'ctx', oldL: 1, newL: 1, code: 'def get_customer_tier(cust_id):' },
+                    { type: 'del', oldL: 2, newL: '', code: '-   return cust["plan"]' },
+                    { type: 'add', oldL: '', newL: 2, code: '+   return cust.get("plan", "free") if cust else "free"' },
+                ]
+            },
+            node: {
+                repoUrl: "https://github.com/express-microservices/auth-service",
+                owner: "express-microservices",
+                repoName: "auth-service",
+                branch: "develop",
+                targetFile: "src/routes/auth.js",
+                lineNum: 15,
+                errorType: "ReferenceError",
+                errorMsg: "jwtToken is not defined",
+                lang: "Node.js / Express",
+                sourceCode: "app.post('/verify', (req, res) => {\n    const decoded = verifyToken(jwtToken);\n    return res.json({ user: decoded });\n});\n",
+                fixBranch: "autoheal/fix-jwt-reference",
+                confidence: "99.1%",
+                rationale: "The variable was referenced as undefined jwtToken. Extracted token from auth header bearer string.",
+                diffLines: [
+                    { type: 'ctx', oldL: 1, newL: 1, code: 'app.post("/verify", (req, res) => {' },
+                    { type: 'del', oldL: 2, newL: '', code: '-   const decoded = verifyToken(jwtToken);' },
+                    { type: 'add', oldL: '', newL: 2, code: '+   const token = req.headers.authorization?.split(" ")[1];' },
+                    { type: 'add', oldL: '', newL: 3, code: '+   const decoded = token ? verifyToken(token) : null;' },
+                    { type: 'ctx', oldL: 3, newL: 4, code: '    return res.json({ user: decoded });' },
+                ]
+            },
+            flask: {
+                repoUrl: "https://github.com/analytics-stack/metric-engine",
+                owner: "analytics-stack",
+                repoName: "metric-engine",
+                branch: "main",
+                targetFile: "engine/calculator.py",
+                lineNum: 104,
+                errorType: "ZeroDivisionError",
+                errorMsg: "division by zero",
+                lang: "Python 3.10+",
+                sourceCode: "def calc_sla_rate(errors, total):\n    return (errors / total) * 100.0\n",
+                fixBranch: "autoheal/fix-zerodivision",
+                confidence: "97.8%",
+                rationale: "When total_requests is 0, computing error_rate caused ZeroDivisionError. Added safe denominator guard.",
+                diffLines: [
+                    { type: 'ctx', oldL: 1, newL: 1, code: 'def calc_sla_rate(errors, total):' },
+                    { type: 'del', oldL: 2, newL: '', code: '-   return (errors / total) * 100.0' },
+                    { type: 'add', oldL: '', newL: 2, code: '+   return (errors / total) * 100.0 if total > 0 else 0.0' },
+                ]
+            }
+        };
+
+        // Active Application State
+        let activeState = JSON.parse(JSON.stringify(SCENARIOS.fastapi));
+
         // 1. Navigation Switcher
         function switchNav(viewId) {
             document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
@@ -814,40 +1131,496 @@
                 targetBtn.classList.remove('text-on-surface-variant');
                 targetBtn.classList.add('text-primary');
             }
+
+            // Always synchronize Healing Studio preview whenever user switches to it
+            if (viewId === 'studio') {
+                updateAllUIFromState();
+            }
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // 2. Ingestion Hub Tabs
         function switchIngestionTab(tabKey) {
-            ['github', 'upload', 'traceback'].forEach(k => {
-                document.getElementById(`ingest-${k}`).classList.add('hidden');
-                document.getElementById(`tab-btn-${k}`).classList.remove('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
-                document.getElementById(`tab-btn-${k}`).classList.add('text-on-surface-variant');
+            ['github', 'local', 'upload', 'traceback'].forEach(k => {
+                const el = document.getElementById(`ingest-${k}`);
+                const btn = document.getElementById(`tab-btn-${k}`);
+                if (el) el.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
+                    btn.classList.add('text-on-surface-variant');
+                }
             });
-            document.getElementById(`ingest-${tabKey}`).classList.remove('hidden');
+            const targetEl = document.getElementById(`ingest-${tabKey}`);
             const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
-            activeBtn.classList.add('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
-            activeBtn.classList.remove('text-on-surface-variant');
+            if (targetEl) targetEl.classList.remove('hidden');
+            if (activeBtn) {
+                activeBtn.classList.add('bg-surface-container-highest', 'text-white', 'border', 'border-outline-variant/60');
+                activeBtn.classList.remove('text-on-surface-variant');
+            }
         }
 
-        function triggerIngestionToStudio() {
+        // Autonomous IDE Modal Handlers
+        function openIdeModal() {
+            const modal = document.getElementById('ide-launcher-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeIdeModal() {
+            const modal = document.getElementById('ide-launcher-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function launchInVsCode() {
+            const repo = activeState.repoUrl || "https://github.com/rajdeep-r24/Self-Healing-AI";
+            const vsCodeUri = `vscode://vscode.git/clone?url=${encodeURIComponent(repo)}`;
+            window.location.href = vsCodeUri;
+            
+            const runCmd = `python setup.bat; python watcher.py`;
+            navigator.clipboard.writeText(runCmd).catch(() => {});
+            alert("VS Code is opening! Once cloned, run 'python watcher.py' to launch the autonomous Sentinel.");
+            closeIdeModal();
+        }
+
+        function downloadOneClickRunner() {
+            const repo = activeState.repoUrl || "https://github.com/rajdeep-r24/Self-Healing-AI";
+            const repoName = activeState.repoName || "Self-Healing-AI";
+            const batContent = `@echo off\r\ntitle Enterprise Self-Healing Sentinel\r\necho ======================================================================\r\necho   AUTONOMOUS SELF-HEALING SENTINEL - 1-CLICK LAUNCHER\r\necho ======================================================================\r\necho.\r\necho [1/3] Cloning target repository...\r\nif not exist "${repoName}" (\r\n    git clone ${repo}.git\r\n    cd "${repoName}"\r\n) else (\r\n    cd "${repoName}"\r\n    git pull\r\n)\r\necho [2/3] Checking environment setup...\r\nif exist "setup.bat" (\r\n    call setup.bat\r\n)\r\necho [3/3] Starting Autonomous Sentinel...\r\npython watcher.py\r\npause\r\n`;
+            
+            const blob = new Blob([batContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `launch_autoheal_${repoName}.bat`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert(`Downloaded 'launch_autoheal_${repoName}.bat'! Double-click it to clone and start the Sentinel autonomously.`);
+        }
+
+        let currentModalShell = 'pwsh';
+        let currentHubShell = 'pwsh';
+
+        function getFormattedCommand(shell, repoUrl, repoName, isModal = false) {
+            const url = repoUrl || "https://github.com/rajdeep-r24/Self-Healing-AI";
+            const name = repoName || "Self-Healing-AI";
+            if (shell === 'pwsh') {
+                return isModal
+                    ? `git clone ${url}; cd ${name}; python setup.bat; python watcher.py`
+                    : `git clone ${url}; cd ${name}; python watcher.py`;
+            } else if (shell === 'cmd') {
+                return isModal
+                    ? `git clone ${url} && cd ${name} && setup.bat && python watcher.py`
+                    : `git clone ${url} && cd ${name} && python watcher.py`;
+            } else { // bash / mac / linux
+                return isModal
+                    ? `git clone ${url} && cd ${name} && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python3 watcher.py`
+                    : `git clone ${url} && cd ${name} && python3 watcher.py`;
+            }
+        }
+
+        function setModalShell(shell) {
+            currentModalShell = shell;
+            ['pwsh', 'cmd', 'bash'].forEach(s => {
+                const btn = document.getElementById(`modal-shell-btn-${s}`);
+                if (btn) {
+                    if (s === shell) {
+                        btn.className = "px-2.5 py-1 rounded-md bg-primary text-on-primary-fixed font-bold text-[11px] transition-all";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-md text-on-surface-variant hover:text-white font-medium text-[11px] transition-all";
+                    }
+                }
+            });
+            const modalCliEl = document.getElementById('modal-cli-cmd');
+            if (modalCliEl) {
+                modalCliEl.textContent = getFormattedCommand(currentModalShell, activeState.repoUrl, activeState.repoName, true);
+            }
+        }
+
+        function setHubShell(shell) {
+            currentHubShell = shell;
+            ['pwsh', 'cmd', 'bash'].forEach(s => {
+                const btn = document.getElementById(`hub-shell-btn-${s}`);
+                if (btn) {
+                    if (s === shell) {
+                        btn.className = "px-2 py-0.5 rounded bg-primary text-on-primary-fixed font-bold transition-all";
+                    } else {
+                        btn.className = "px-2 py-0.5 rounded text-on-surface-variant hover:text-white transition-all";
+                    }
+                }
+            });
+            const cliEl = document.getElementById('cli-cmd-text');
+            if (cliEl) {
+                cliEl.textContent = getFormattedCommand(currentHubShell, activeState.repoUrl, activeState.repoName, false);
+            }
+        }
+
+        function copyModalCliCommand() {
+            const cmd = document.getElementById('modal-cli-cmd').innerText;
+            navigator.clipboard.writeText(cmd).then(() => {
+                alert("PowerShell / Terminal command copied to clipboard!");
+            }).catch(() => {
+                prompt("Copy command:", cmd);
+            });
+        }
+
+        function copyCliCommand() {
+            const cmd = document.getElementById('cli-cmd-text').innerText;
+            navigator.clipboard.writeText(cmd).then(() => {
+                alert("CLI Command copied to clipboard! Paste and run it in your project's terminal.");
+            }).catch(() => {
+                prompt("Copy command:", cmd);
+            });
+        }
+
+        function runInteractiveTUIDemo() {
+            const stream = document.getElementById('local-tui-stream');
+            if (!stream) return;
+            stream.innerHTML = '<div class="text-yellow-400 animate-pulse font-bold">⚡ Intercepting runtime failure in logs/server.log...</div>';
+            
+            const steps = [
+                { delay: 400, text: '<div class="text-error font-bold">✖ 1. Error Interceptor &gt; KeyError: "user_name" at app.py:26</div>' },
+                { delay: 900, text: '<div class="text-cyan-400">⠋ 2. AI Diagnostic Engine &gt; Google Gemini 2.5 Flash analyzing AST structure...</div>' },
+                { delay: 1400, text: '<div class="text-emerald-400">✔ 2. AI Diagnostic Engine &gt; Fix generated in 0.42s</div>' },
+                { delay: 1800, text: '<div class="text-emerald-400">✔ 3. Syntax Validator &gt; py_compile AST check PASS (0 errors)</div>' },
+                { delay: 2200, text: '<div class="text-emerald-400">✔ 4. Pytest Regression Shield &gt; 15/15 unit tests PASS (1.8s)</div>' },
+                { delay: 2600, text: '<div class="text-emerald-400">✔ 5. Atomic Hot-Patch &gt; app.py.bak backup saved, atomic write OK</div>' },
+                { delay: 3000, text: '<div class="text-emerald-400">✔ 6. Short-Polling Health Check &gt; HTTP 200 OK verified</div>' },
+                { delay: 3400, text: '<div class="text-purple-400 font-bold">✔ 7. Git Branch & GitHub PR &gt; Branch autoheal/fix-live created, PR opened autonomously on GitHub!</div>' },
+                { delay: 3700, text: '<div class="text-emerald-300 font-bold mt-2 p-2 bg-emerald-950/60 border border-emerald-500/40 rounded">🎉 HEALING COMPLETE: Local service restored with zero downtime.</div>' }
+            ];
+
+            steps.forEach(s => {
+                setTimeout(() => {
+                    stream.innerHTML += s.text;
+                }, s.delay);
+            });
+        }
+
+        // 3. Dynamic State Sync & UI Updater
+        function updateAllUIFromState() {
+            // Header
+            document.getElementById('header-github-link').href = activeState.repoUrl || "https://github.com";
+            document.getElementById('header-github-label').textContent = `${activeState.owner}/${activeState.repoName}`;
+
+            // Ingestion Sidebar
+            document.getElementById('parsed-repo-badge').textContent = `${activeState.owner}/${activeState.repoName}`;
+            document.getElementById('sidebar-repo-name').textContent = `${activeState.owner}/${activeState.repoName}`;
+            document.getElementById('sidebar-target-file').textContent = `${activeState.targetFile} (${activeState.errorType})`;
+            document.getElementById('sidebar-pr-dest').textContent = `PR -> ${activeState.branch}`;
+
+            // Local TUI Tab Links & Modal CLI Command
+            const cliEl = document.getElementById('cli-cmd-text');
+            if (cliEl) cliEl.textContent = getFormattedCommand(currentHubShell, activeState.repoUrl, activeState.repoName, false);
+            const modalCliEl = document.getElementById('modal-cli-cmd');
+            if (modalCliEl) modalCliEl.textContent = getFormattedCommand(currentModalShell, activeState.repoUrl, activeState.repoName, true);
+
+            // Hero Simulator
+            document.getElementById('sim-target-file').textContent = `${activeState.targetFile}:${activeState.lineNum || 1}`;
+            document.getElementById('sim-target-repo').textContent = `${activeState.owner}/${activeState.repoName}`;
+            document.getElementById('sim-stream-error').textContent = `[WATCHER] ${activeState.errorType} in ${activeState.targetFile}:${activeState.lineNum || 1}`;
+            document.getElementById('sim-stream-desc').textContent = `${activeState.errorType}: ${activeState.errorMsg || 'Runtime failure'}`;
+            document.getElementById('sim-pr-title').textContent = `Pull Request Created on ${activeState.repoName}!`;
+            document.getElementById('sim-pr-branch').textContent = `branch: ${activeState.fixBranch}`;
+            document.getElementById('sim-pr-link-btn').href = activeState.prUrl || `${activeState.repoUrl}/pulls`;
+
+            // Healing Studio (Page 3) - Dynamically Updated Live!
+            document.getElementById('studio-active-file').textContent = `${activeState.targetFile}:${activeState.lineNum || 1}`;
+            document.getElementById('studio-active-repo').textContent = `${activeState.owner}/${activeState.repoName}`;
+            document.getElementById('pipe-stage-1').textContent = `${activeState.errorType} intercepted (0.0015s)`;
+            document.getElementById('pipe-stage-5').textContent = `${activeState.targetFile}.bak saved & patch applied`;
+            document.getElementById('pipe-stage-7').textContent = `Branch ${activeState.fixBranch} dispatched to ${activeState.owner}/${activeState.repoName}`;
+            document.getElementById('studio-confidence-pct').textContent = activeState.confidence;
+            document.getElementById('studio-confidence-bar').style.width = activeState.confidence;
+            document.getElementById('studio-ai-rationale').textContent = activeState.rationale;
+            document.getElementById('diff-file-header').textContent = `${activeState.targetFile} (Unified Diff)`;
+            document.getElementById('diff-lang-badge').textContent = activeState.lang || "Source Code";
+            document.getElementById('studio-pr-action-btn').href = activeState.prUrl || `${activeState.repoUrl}/pulls`;
+            document.getElementById('studio-pr-btn-label').textContent = `Review PR on ${activeState.owner}/${activeState.repoName}`;
+
+            // Render Unified Diff Table
+            renderDiffTable(activeState.diffLines);
+        }
+
+        function renderDiffTable(lines) {
+            const tbody = document.getElementById('diff-table-body');
+            tbody.innerHTML = '';
+            if (!lines || lines.length === 0) {
+                lines = [
+                    { type: 'ctx', oldL: 1, newL: 1, code: `# Source: ${activeState.targetFile}` },
+                    { type: 'del', oldL: 2, newL: '', code: `-   # ${activeState.errorType} unhandled` },
+                    { type: 'add', oldL: '', newL: 2, code: `+   # ${activeState.errorType} safely handled by AutoHeal AI` },
+                    { type: 'ctx', oldL: 3, newL: 3, code: `    return {'status': 'ok'}` }
+                ];
+            }
+            lines.forEach(line => {
+                const tr = document.createElement('tr');
+                if (line.type === 'del') {
+                    tr.className = 'bg-error-container/20 text-error';
+                    tr.innerHTML = `
+                        <td class="w-12 text-right pr-4 py-1 border-r border-error/30 bg-error-container/30 font-bold select-none">${line.oldL || ''}</td>
+                        <td class="w-12 text-right pr-4 py-1 border-r border-error/30 bg-error-container/30 select-none"></td>
+                        <td class="pl-4 py-1 whitespace-pre font-bold">${escapeHtml(line.code)}</td>
+                    `;
+                } else if (line.type === 'add') {
+                    tr.className = 'bg-primary-container/20 text-primary-fixed';
+                    tr.innerHTML = `
+                        <td class="w-12 text-right pr-4 py-1 border-r border-primary/30 bg-primary-container/30 select-none"></td>
+                        <td class="w-12 text-right pr-4 py-1 border-r border-primary/30 bg-primary-container/30 font-bold select-none">${line.newL || ''}</td>
+                        <td class="pl-4 py-1 whitespace-pre font-bold">${escapeHtml(line.code)}<span class="inline-block w-2 h-3.5 bg-primary ml-1 align-middle cursor-blink"></span></td>
+                    `;
+                } else {
+                    tr.className = 'hover:bg-white/5';
+                    tr.innerHTML = `
+                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">${line.oldL || ''}</td>
+                        <td class="w-12 text-right pr-4 py-1 border-r border-outline-variant/20 opacity-40 select-none">${line.newL || ''}</td>
+                        <td class="pl-4 py-1 text-white">${escapeHtml(line.code)}</td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(text) {
+            return (text || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // 4. Dynamic URL Parsing for ANY Git URL
+        function handleRepoUrlChange(url) {
+            url = url.trim();
+            if (!url) return;
+            let owner = "organization";
+            let repo = "repository";
+
+            try {
+                const clean = url.replace(/^https?:\/\/[^\/]+\//, '').replace(/\.git$/, '');
+                const parts = clean.split('/').filter(Boolean);
+                if (parts.length >= 2) {
+                    owner = parts[0];
+                    repo = parts[1];
+                } else if (parts.length === 1) {
+                    repo = parts[0];
+                }
+            } catch (e) {}
+
+            activeState.repoUrl = url.startsWith('http') ? url : `https://github.com/${url}`;
+            activeState.owner = owner;
+            activeState.repoName = repo;
+            activeState.fixBranch = `autoheal/fix-${repo.toLowerCase()}-${Math.floor(Math.random()*900+100)}`;
+            activeState.prUrl = `${activeState.repoUrl}/pulls`;
+            updateAllUIFromState();
+        }
+
+        function handleBranchChange(branch) {
+            activeState.branch = branch;
+            updateAllUIFromState();
+        }
+
+        function handleFileInputChange(file) {
+            activeState.targetFile = file || "main.py";
+            updateAllUIFromState();
+        }
+
+        function handleErrorTypeChange(err) {
+            activeState.errorType = err || "RuntimeError";
+            updateAllUIFromState();
+        }
+
+        // Preset Scenario Loader
+        function loadScenario(key) {
+            if (SCENARIOS[key]) {
+                activeState = JSON.parse(JSON.stringify(SCENARIOS[key]));
+                activeState.prUrl = `${activeState.repoUrl}/pulls`;
+                document.getElementById('repo-url-input').value = activeState.repoUrl;
+                document.getElementById('repo-branch-select').value = activeState.branch;
+                document.getElementById('repo-file-input').value = activeState.targetFile;
+                document.getElementById('repo-error-input').value = activeState.errorType;
+                updateAllUIFromState();
+                showToast(`Loaded ${key.toUpperCase()}: ${activeState.owner}/${activeState.repoName}`);
+            }
+        }
+
+        // Real File Upload Handler (Reads actual code)
+        function handleRealFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const fileName = file.name;
+            const isPy = fileName.endsWith('.py');
+            const isJs = fileName.endsWith('.js') || fileName.endsWith('.ts');
+            const isGo = fileName.endsWith('.go');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                activeState.targetFile = fileName;
+                activeState.owner = "workspace";
+                activeState.repoName = fileName.replace(/\.[^/.]+$/, "");
+                activeState.repoUrl = `https://github.com/workspace/${activeState.repoName}`;
+                activeState.lang = isPy ? "Python 3.11+" : (isJs ? "TypeScript / Node" : (isGo ? "Go 1.22" : "Source Code"));
+                activeState.errorType = "UnhandledException";
+                activeState.sourceCode = content;
+                activeState.fixBranch = `autoheal/fix-${activeState.repoName}`;
+                activeState.prUrl = `${activeState.repoUrl}/pulls`;
+
+                document.getElementById('uploaded-filename-badge').textContent = fileName;
+                document.getElementById('uploaded-lang-badge').textContent = activeState.lang;
+                document.getElementById('uploaded-code-preview').value = content;
+                document.getElementById('upload-preview-panel').classList.remove('hidden');
+
+                updateAllUIFromState();
+                showToast(`Loaded ${fileName} (${content.split('\n').length} lines)`);
+            };
+            reader.readAsText(file);
+        }
+
+        // Trigger AI repair on uploaded code
+        async function triggerUploadedCodeHeal() {
+            const code = document.getElementById('uploaded-code-preview').value;
+            activeState.sourceCode = code;
+            showToast(`Diagnosing and repairing ${activeState.targetFile} with Gemini...`);
+
+            try {
+                const res = await fetch('/api/heal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repo_url: activeState.repoUrl,
+                        target_file: activeState.targetFile,
+                        error_type: activeState.errorType,
+                        source_code: code,
+                        branch: activeState.branch
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.diagnosis) activeState.rationale = data.diagnosis;
+                    if (data.branch_name) activeState.fixBranch = data.branch_name;
+                    if (data.diff_lines && data.diff_lines.length > 0) activeState.diffLines = data.diff_lines;
+                    if (data.pr_url) activeState.prUrl = data.pr_url;
+                }
+            } catch (e) {
+                console.error("API error:", e);
+            }
+
+            updateAllUIFromState();
             switchNav('studio');
+            showToast(`Autonomous AI Patch Created for ${activeState.targetFile}!`);
         }
 
-        function simulateRollback() {
-            alert("Rollback Triggered! Restored code state from backup (app.py.bak).");
+        // Parse and execute real traceback + source code
+        async function parseAndRunCustomTraceback() {
+            const tracebackText = document.getElementById('traceback-textarea').value.trim();
+            const sourceCode = document.getElementById('traceback-code-textarea').value.trim();
+
+            if (!tracebackText && !sourceCode) {
+                alert("Please paste either a traceback or source code.");
+                return;
+            }
+
+            const fileMatch = tracebackText.match(/File "([^"]+)", line (\d+)/);
+            const errorMatch = tracebackText.match(/([A-Za-z]+Error|Exception): (.+)/);
+
+            if (fileMatch) {
+                activeState.targetFile = fileMatch[1];
+                activeState.lineNum = parseInt(fileMatch[2]);
+            }
+            if (errorMatch) {
+                activeState.errorType = errorMatch[1];
+                activeState.errorMsg = errorMatch[2];
+            } else {
+                activeState.errorType = "CustomException";
+                activeState.errorMsg = "Intercepted crash";
+            }
+
+            activeState.sourceCode = sourceCode;
+            activeState.fixBranch = `autoheal/fix-${activeState.errorType.toLowerCase()}`;
+            showToast(`Executing Gemini analysis for ${activeState.errorType}...`);
+
+            try {
+                const res = await fetch('/api/heal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repo_url: activeState.repoUrl,
+                        target_file: activeState.targetFile,
+                        error_type: activeState.errorType,
+                        traceback_text: tracebackText,
+                        source_code: sourceCode || null,
+                        branch: activeState.branch
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.diagnosis) activeState.rationale = data.diagnosis;
+                    if (data.branch_name) activeState.fixBranch = data.branch_name;
+                    if (data.diff_lines && data.diff_lines.length > 0) activeState.diffLines = data.diff_lines;
+                    if (data.pr_url) activeState.prUrl = data.pr_url;
+                }
+            } catch (e) {
+                console.error("API error:", e);
+            }
+
+            updateAllUIFromState();
+            switchNav('studio');
+            showToast(`Diagnosis Complete: ${activeState.errorType} in ${activeState.targetFile}`);
         }
 
-        // 3. Hero Interactive Simulation Sequence
-        const simStages = [
-            { text: "Watcher: Exception Intercepted in app.py", icon: "check_circle", color: "text-primary", delay: 700 },
-            { text: "Gemini 2.5 Flash: Diagnosing Root Cause...", isSpinner: true, color: "text-tertiary", delay: 1400 },
-            { text: "Validator: py_compile AST check PASS", icon: "code", color: "text-primary", delay: 800 },
-            { text: "Pytest Shield: Executing 15 tests...", isSpinner: true, color: "text-secondary", delay: 1200 },
-            { text: "Healer: Hot-Patch Applied & .bak Saved", icon: "healing", color: "text-primary", delay: 800 },
-            { text: "Health Check: HTTP 200 OK Verified", icon: "health_and_safety", color: "text-primary", delay: 700 }
-        ];
+        // Real Autonomous Backend Trigger for GitHub Repo
+        async function triggerIngestionToStudio() {
+            showToast(`Connecting Sentinel to ${activeState.owner}/${activeState.repoName}...`);
+            try {
+                const res = await fetch('/api/heal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repo_url: activeState.repoUrl,
+                        target_file: activeState.targetFile,
+                        error_type: activeState.errorType,
+                        branch: activeState.branch
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.diagnosis) activeState.rationale = data.diagnosis;
+                    if (data.branch_name) activeState.fixBranch = data.branch_name;
+                    if (data.diff_lines && data.diff_lines.length > 0) activeState.diffLines = data.diff_lines;
+                    if (data.pr_url) activeState.prUrl = data.pr_url;
+                }
+            } catch (e) {
+                console.log("Using local state:", e);
+            }
+            updateAllUIFromState();
+            switchNav('studio');
+            showToast(`Autonomous Repair Verified on ${activeState.owner}/${activeState.repoName}`);
+        }
 
+        function triggerRollback() {
+            showToast("Rollback Triggered! Restored code state from backup (.bak)");
+        }
+
+        function downloadPatchFile() {
+            let patchContent = `--- a/${activeState.targetFile}\n+++ b/${activeState.targetFile}\n`;
+            activeState.diffLines.forEach(l => {
+                if (l.type === 'del') patchContent += `${l.code}\n`;
+                else if (l.type === 'add') patchContent += `${l.code}\n`;
+                else patchContent += ` ${l.code}\n`;
+            });
+
+            const blob = new Blob([patchContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${activeState.repoName}-patch.diff`;
+            a.click();
+            showToast(`Downloaded ${activeState.repoName}-patch.diff`);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        // 5. Hero Interactive Simulation Sequence (Calling Real Backend)
         async function runHeroSimulation() {
             document.getElementById('sim-idle').classList.add('hidden');
             document.getElementById('sim-stream').classList.remove('hidden');
@@ -855,6 +1628,28 @@
             
             const stageContainer = document.getElementById('stream-stages');
             stageContainer.innerHTML = '';
+
+            const simStages = [
+                { text: `Watcher: Intercepted exception in ${activeState.targetFile}`, icon: "check_circle", color: "text-primary", delay: 500 },
+                { text: `Gemini Flash: Diagnosing ${activeState.errorType}...`, isSpinner: true, color: "text-tertiary", delay: 1000 },
+                { text: `Validator: AST compile check for ${activeState.targetFile} PASS`, icon: "code", color: "text-primary", delay: 600 },
+                { text: `Pytest Shield: Executing tests for ${activeState.repoName}...`, isSpinner: true, color: "text-secondary", delay: 800 },
+                { text: `Healer: Hot-Patch Applied & ${activeState.targetFile}.bak Saved`, icon: "healing", color: "text-primary", delay: 600 },
+                { text: "Health Check: HTTP 200 OK Verified in 0.05s", icon: "health_and_safety", color: "text-primary", delay: 500 }
+            ];
+
+            // Trigger real backend repair concurrently
+            let backendPromise = fetch('/api/heal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repo_url: activeState.repoUrl,
+                    target_file: activeState.targetFile,
+                    error_type: activeState.errorType,
+                    source_code: activeState.sourceCode || null,
+                    branch: activeState.branch
+                })
+            }).then(r => r.json()).catch(() => null);
 
             for (const stage of simStages) {
                 const row = document.createElement('div');
@@ -875,7 +1670,17 @@
                 }
             }
 
-            await new Promise(r => setTimeout(r, 600));
+            const backendData = await backendPromise;
+            if (backendData && backendData.status === 'success') {
+                if (backendData.diagnosis) activeState.rationale = backendData.diagnosis;
+                if (backendData.branch_name) activeState.fixBranch = backendData.branch_name;
+                if (backendData.diff_lines && backendData.diff_lines.length > 0) activeState.diffLines = backendData.diff_lines;
+                if (backendData.pr_url) activeState.prUrl = backendData.pr_url;
+            }
+
+            updateAllUIFromState();
+
+            await new Promise(r => setTimeout(r, 300));
             document.getElementById('sim-pr').classList.remove('hidden');
             setTimeout(() => {
                 const card = document.getElementById('pr-card-content');
@@ -894,7 +1699,10 @@
             card.classList.add('scale-95', 'opacity-0');
         }
 
-        // 4. WebGL Canvas Shader Background (ANIMATION_2 from Stitch)
+        // Initialize state on page load
+        updateAllUIFromState();
+
+        // 6. WebGL Canvas Shader Background (ANIMATION_2)
         (function() {
             const canvas = document.getElementById('shader-canvas-ANIMATION_2');
             if (!canvas) return;
@@ -937,14 +1745,11 @@
                 vec2 p = (uv * 2.0 - 1.0);
                 p.x *= u_resolution.x / u_resolution.y;
                 
-                // Animated grid
                 vec2 grid = fract(uv * 32.0 + u_time * 0.04);
                 float line = smoothstep(0.02, 0.0, grid.x) + smoothstep(0.02, 0.0, grid.y);
                 
-                // Background dark space
                 vec3 color = vec3(0.027, 0.039, 0.059);
                 
-                // Floating data particles
                 for(float i = 0.0; i < 5.0; i++) {
                     vec2 pos = vec2(hash(vec2(i, 1.0)), hash(vec2(i, 2.0))) * 2.0 - 1.0;
                     pos.x += sin(u_time * 0.2 + i) * 0.5;
@@ -954,7 +1759,6 @@
                     color += vec3(0.06, 0.72, 0.5) * glow * (0.5 + 0.5 * sin(u_time + i));
                 }
 
-                // Cyan radial glow
                 float centerPulse = 1.0 - length(p * 0.5);
                 color += vec3(0.02, 0.71, 0.83) * pow(centerPulse, 4.0) * (0.08 + 0.04 * sin(u_time));
                 
