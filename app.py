@@ -22,7 +22,7 @@ app = FastAPI()
 async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
+        # Corrected the key from "user_name" to "username"
         greeting = f"Hello, {user_data['username']}!"
         return {"message": greeting}
     except Exception as e:
