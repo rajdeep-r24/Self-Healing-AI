@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 import traceback
@@ -8,15 +7,13 @@ from fastapi.responses import JSONResponse
 # Ensure logs directory exists
 os.makedirs("logs", exist_ok=True)
 
-# Configure logging to write to server.log
-logging.basicConfig(
-    filename="logs/server.log",
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+def log_server_error(msg: str):
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/server.log", "a", encoding="utf-8") as f:
+        f.write(f"ERROR - {msg}\n")
+        f.flush()
 
-app = FastAPI()
+app = FastAPI(title="Enterprise Self-Healing AI")
 
 @app.get("/process_data")
 async def process_data():
@@ -28,5 +25,7 @@ async def process_data():
     except Exception as e:
         exc_type, exc_value, exc_tb = sys.exc_info()
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-        logger.error(f"Unhandled exception in /process_data:\n{tb_str}")
+        log_server_error(f"Unhandled exception in /process_data:\n{tb_str}")
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+    
