@@ -29,7 +29,6 @@ def get_template(filename: str) -> str:
 async def serve_index():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
         greeting = f"Hello, {user_data['username']}!"
         content = get_template("index.html")
         return HTMLResponse(content=content or f"<h1>{greeting}</h1>", status_code=200)
@@ -44,7 +43,6 @@ async def serve_index():
 async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
         greeting = f"Hello, {user_data['username']}!"
         return {"message": greeting, "status": "healthy", "user": user_data["username"]}
     except Exception as e:
@@ -52,4 +50,3 @@ async def process_data():
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         logger.error(f"Unhandled exception in /process_data:\n{tb_str}")
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
-# Dummy change
