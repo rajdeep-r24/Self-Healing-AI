@@ -29,7 +29,8 @@ def get_template(filename: str) -> str:
 async def serve_index():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        greeting = f"Hello, {user_data['username']}!"
+        username = user_data.get("username") or user_data.get("user_name") or "admin"
+        greeting = f"Hello, {username}!"
         content = get_template("index.html")
         return HTMLResponse(content=content or f"<h1>{greeting}</h1>", status_code=200)
     except Exception as e:
@@ -43,8 +44,9 @@ async def serve_index():
 async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        greeting = f"Hello, {user_data['username']}!"
-        return {"message": greeting, "status": "healthy", "user": user_data["username"]}
+        username = user_data.get("username") or user_data.get("user_name") or "admin"
+        greeting = f"Hello, {username}!"
+        return {"message": greeting, "status": "healthy", "user": username}
     except Exception as e:
         exc_type, exc_value, exc_tb = sys.exc_info()
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
