@@ -28,8 +28,8 @@ def get_template(filename: str) -> str:
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     try:
-        user_data = {"username": "admin", "role": "superuser"}
-        greeting = f"Hello, {user_data['username']}!"
+        user_data = {"username": "admin", "user_name": "admin", "role": "superuser"}
+        greeting = f"Hello, {user_data.get('user_name', user_data.get('username'))}!"
         content = get_template("index.html")
         return HTMLResponse(content=content or f"<h1>{greeting}</h1>", status_code=200)
     except Exception as e:
@@ -42,9 +42,9 @@ async def serve_index():
 @app.get("/process_data")
 async def process_data():
     try:
-        user_data = {"username": "admin", "role": "superuser"}
-        greeting = f"Hello, {user_data['username']}!"
-        return {"message": greeting, "status": "healthy", "user": user_data["username"]}
+        user_data = {"username": "admin", "user_name": "admin", "role": "superuser"}
+        greeting = f"Hello, {user_data.get('user_name', user_data.get('username'))}!"
+        return {"message": greeting, "status": "healthy", "user": user_data.get('user_name', user_data.get('username'))}
     except Exception as e:
         exc_type, exc_value, exc_tb = sys.exc_info()
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
