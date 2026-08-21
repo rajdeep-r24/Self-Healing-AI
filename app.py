@@ -14,7 +14,7 @@ logging.basicConfig(
     level=logging.ERROR,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(__name__())
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -52,3 +52,4 @@ async def process_data():
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         logger.error(f"Unhandled exception in /process_data:\n{tb_str}")
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+# Dummy change
