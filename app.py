@@ -29,7 +29,7 @@ def get_template(filename: str) -> str:
 async def serve_index():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # Fixed the typo: changed "user_name" to "username"
+        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
         greeting = f"Hello, {user_data['username']}!"
         content = get_template("index.html")
         return HTMLResponse(content=content or f"<h1>{greeting}</h1>", status_code=200)
@@ -44,7 +44,7 @@ async def serve_index():
 async def process_data():
     try:
         user_data = {"username": "admin", "role": "superuser"}
-        # Fixed the typo: changed "user_name" to "username"
+        # INTENTIONAL BUG: "user_name" is a typo, the correct key is "username"
         greeting = f"Hello, {user_data['username']}!"
         return {"message": greeting, "status": "healthy", "user": user_data["username"]}
     except Exception as e:
